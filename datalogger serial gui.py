@@ -88,8 +88,11 @@ def help_window():
     window=tkinter.Toplevel()
     window.title('Help & About')
     window.configure(background="#FFFFFF")
-    p2 = tkinter.PhotoImage(file = 'help.png')
-    window.iconphoto(True, p2)
+
+    try:
+        p2 = tkinter.PhotoImage(file = 'help.png')
+        window.iconphoto(True, p2)
+    except: None
 
 
     about_line = "Thank you for using Serial Data logger v"+VERSION+"\n(C) 2020 Aditya Anand under MIT License "
@@ -121,7 +124,9 @@ slogger=logger(log=True) #Intiliaze logger
 #Tkinter window properties
 root = Tk()
 root.title(TITLE)
-root.iconphoto(False, tkinter.PhotoImage(file = 'icon.png'))
+try:
+    root.iconphoto(False, tkinter.PhotoImage(file = 'icon.png'))
+except: None
 
 #Theme properties
 root.configure(background='#FFFFFF')
