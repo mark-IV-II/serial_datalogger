@@ -1,10 +1,14 @@
 import os #For writing to temp file
+import sys #To identify platform
 import serial #pip install pyserial
+
+
+
 import datetime #to save timestamp
 from tempfile import TemporaryDirectory
 
 class logger:
-    '''Serial data Logger  class. Variable: log. Functions: capture, save_capture. '''
+    '''Serial data Logger  class. Variable: log. Functions: find_all_ports, capture, save_capture. '''
 
     #Initialise class parameters
     def __init__(self,log=True):
@@ -13,8 +17,41 @@ class logger:
         self.tmpfle = open(os.path.join(self.tmpdir.name, 'temp.txt'), 'a+') #OS independent file opening
 
 
+    #Function to list all available serial ports
+    def find_all_ports(self):
+        '''Return a list of port names found. OS independent in nature. Unsupported OS raises OSError exception'''
+
+        port_list=[] #List to return ports information
+
+        #Find all ports for windows
+        if sys.platform.startswith('win'):
+            import serial.tools.list_ports_windows as sertoolswin
+            ports = sertoolswin.comports()
+
+        #Find all ports for Linux based OSes
+        elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
+            import serial.tools.list_ports_linux as sertoolslin
+            ports = sertoolslin.comports()
+        
+        #Find all ports for MacOSX
+        elif sys.platform.startswith('darwin'):
+            import serial.tools.list_ports_osx as sertoolsosx
+            ports = sertoolsosx.comports()
+
+        #Raise exception for unsupported OS
+        else:
+            raise OSError("Unsupported Platform/OS")
+
+        #Fill the return list with information found
+        print('Available ports are:')
+        for port, desc, hwid in sorted(ports):
+            port_list.append(port)
+            print("{}: {} with id: {}".format(port, desc, hwid))
+        
+        return port_list
+
     #Main function that saves the data
-    def capture(self, port_num=1, baud_rate=8600, timestamp=1):
+    def capture(self, port_name, baud_rate=9600, timestamp=1):
         '''Capture data coming through serial port of the computer. The function does not loop itself. Setting up loop in here breaks GUI windows
          Parameters include port number, baud rate and an integer flag to add timestamp to files'''
 
@@ -23,7 +60,7 @@ class logger:
             try:
 
                 #Intialise function parameters
-                port = 'COM'+str(port_num)
+                port = str(port_name)
                 baud_rate = int(baud_rate)
                 data = serial.Serial(port, baud_rate, timeout=.1)
 
