@@ -2,6 +2,11 @@ This project helps in reading and saving data from a serial port (or USB) connec
 
 Note: The drivers required for the device connected must be installed seperately. Timestamp feature is disabled by default
 
+
+Note: The drivers required for the device connected must be installed seperately. Timestamp feature is disabled by default
+
 Screen shot
 
 ![image](https://user-images.githubusercontent.com/58716239/92870856-ecabc680-f421-11ea-8fa2-1cd9b97038f1.png)
+
+
