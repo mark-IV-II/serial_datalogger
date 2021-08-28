@@ -1,195 +1,515 @@
+__author__ = 'mark-IV-II'
+__version__ = '3.0.0-beta'
+
 import tkinter
-from tkinter import Tk, ttk, messagebox, Menu
-from tkinter.filedialog import asksaveasfile
+import os
+import json
+import webbrowser
+import logging
+from logging import INFO, WARN
+# from icecream import ic
+from datetime import datetime
+from tkinter import Tk, ttk, messagebox, Menu, PhotoImage, IntVar, StringVar
+from tkinter.filedialog import asksaveasfile, askdirectory
+from threading import Thread
 from serlogger import logger
 
-VERSION='v2.1.0-beta'
-TITLE='Serial Datalogger '+VERSION
+log_flag = False
 
 
-#Function to capture data. Mapped to start_button
-def start(event=None):
-    
-    try:
-        
-        #Obtain port number and baud rate info from UI
-        port_name=serial_port_selection.get()
-        baud_rate=baud_rate_entry.get()        
+class app_class(object):
+    def __init__(self, root):
 
-        #Raise exception for empty or invalid inputs
-        if not port_name: #Check if string is empty or not.If empty raise exception
-            raise ValueError('Port name is empty')        
-        baud_rate = int(baud_rate) #Exception automatically raised if conversion fails
+        self.log_level = WARN
+        self.logger = self._set_log(self.log_level)
 
-        #Check whether timstamp option is enabled
-        if timestamp.get() == 1:
-            slogger.capture(port_name, baud_rate, timestamp=1)
-        
+        self.root = root
+        self.window = tkinter.Toplevel
+        self.button = ttk.Button
+        self.label = ttk.Label
+        self.combobox = ttk.Combobox
+        self.entry = ttk.Entry
+        self.dropdown = ttk.OptionMenu
+
+        self.version = f'v{__version__}'
+        self.title = 'Serial Datalogger ' + self.version
+        try:
+            self.icon = PhotoImage(file='icon.png')
+        except Exception as e:
+            self.logger.warn(f'Error loading logo. {e}')
+
+        self.bgcolour = "#FFFFFF"
+        ttk.Style().theme_use('clam')
+
+        self.def_location = self.default_location(self)
+        self.help = self.help_window(self)
+        self.output_dir = self.def_location.get_location()
+
+        self.slogger = logger(log=True, save_dir=self.output_dir)
+        self.main_window = self.main_window(self)
+
+        # for future implementation of scrollable license window
+        # self.frame = tkinter.Frame
+        # self.scrollbar = ttk.Scrollbar
+
+    def _get_time(self):
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    def _set_log(self, log_level=INFO):
+        global log_flag
+
+        if log_flag:
+
+            print('Logging is enabled, skipping new logger initialisation')
+
         else:
-            slogger.capture( port_name, baud_rate, timestamp=0)
 
-        #Set up loop in tkinter
-        if slogger.log:
-            root.after(0, start)
-        
-        slogger.log=True #Set flag to true for starting after its was stopped once
+            ui_logger = logging.getLogger('GUI logger')
+            ui_logger.setLevel(log_level)
 
-    except Exception as e:
-        error_message = 'Please check whether you have entered correct port number or baud rate. '+str(e)
-        messagebox.showerror(
-            'Error ', error_message)
-        print(e)
+            fh = logging.FileHandler(filename='ui_error.log', mode='a')
+            fh.setLevel(log_level)
+            ch = logging.StreamHandler()
+            ch.setLevel(log_level)
+
+            formatter1 = logging.Formatter(
+                '%(asctime)s: %(name)s - %(levelname)s - %(message)s')
+            formatter2 = logging.Formatter(
+                '%(name)s: - %(levelname)s - %(message)s')
+
+            # Add formatters
+            fh.setFormatter(formatter1)
+            ch.setFormatter(formatter2)
+
+            # add the handlers to the logger
+            ui_logger.addHandler(fh)
+            ui_logger.addHandler(ch)
+
+            log_flag = True
+
+        return ui_logger
+
+    class main_window(object):
+        def __init__(self, app_class):
+
+            self.app = app_class
+            self.root = self.app.root
+            self.bgcolour = self.app.bgcolour
+            self.title = self.app.title
+            self.icon = self.app.icon
+            self.combobox = self.app.combobox
+            self.label = self.app.label
+            self.button = self.app.button
+            self.dropdown = self.app.dropdown
+            self.logger = self.app.logger
+            self.slogger = self.app.slogger
+            # If is_temp is true, explicit saving required
+            self.unsaved = self.slogger.is_temp
+            self.root.title(self.title)
+
+            try:
+                self.root.iconphoto(False, self.icon)
+            except Exception as e:
+                self.logger.warn(f'{self.get_time()}: Error loading logo. {e}')
+            self.root.configure(background=self.bgcolour)
+
+            # Tkinter Integer variable to set timestamp checkbox in menu
+            self.timestamp = IntVar()
+            # Tkinter String variable to set file format
+            self.ext = StringVar()
+
+            self.ext_dict = {
+                'Text File (.txt)': 'txt',
+                'Comma Seperated Values (.csv)': 'csv',
+                'JavaScript Object Notation (.json)': 'json'
+            }
+            self.exts = [*self.ext_dict]
+
+            self.serial_port_selection = None
+            self.baud_rate_selection = None
+            self.baud_rates = (300, 1200, 2400, 4800, 9600, 19200, 38400,
+                               57600, 74880, 115200, 230400)
+            self.ports_list = ['No serial ports found']
+
+            self.get_ports()
+            self.draw_elements()
+
+            # Mapping Enter key to start function
+            self.root.bind('<Return>', self.start)
+            # Map close button to quit function to prevent errors while closing
+            self.root.protocol("WM_DELETE_WINDOW", self.wquit)
+
+        def draw_elements(self):
+
+            self.set_menubar()
+
+            # Layout properties with weights for responsive UI
+            self.root.columnconfigure(0, weight=3, minsize=350)
+            self.root.columnconfigure(1, weight=3, minsize=250)
+            self.root.rowconfigure(0, weight=2, minsize=80)
+            self.root.rowconfigure([1, 2, 5, 7], weight=1, minsize=50)
+            self.root.rowconfigure([3, 4, 6], weight=1, minsize=35)
+
+            self.logger.debug(self.ports_list)
+
+            # Label layout properties
+            heading_label = self.label(
+                text='Fill the below details and click start',
+                font=('Verdana', 13),
+                background=self.bgcolour)
+            heading_label.grid(row=0, columnspan=2)
+
+            format_select_label = self.label(text='Select output file format',
+                                             font=('Verdana', 11),
+                                             background=self.bgcolour)
+            format_select_label.grid(row=1, column=0)
+
+            format_select = self.dropdown(self.root, self.ext, self.exts[0],
+                                          *self.exts)
+            format_select.grid(row=1, column=1)
+
+            serialport_name_label = self.label(
+                text='Select or Enter Serial (or USB) Port name',
+                font=('Verdana', 11),
+                background=self.bgcolour)
+            serialport_name_label.grid(row=2, column=0)
+
+            # Dropdown menu with port names
+            self.serial_port_selection = self.combobox(self.root,
+                                                       values=self.ports_list,
+                                                       font=('Verdana', 10))
+            self.serial_port_selection.grid(row=2, column=1)
+
+            baud_rate_label = self.label(text='Select or Enter Baud rate:',
+                                         font=('Verdana', 11),
+                                         background=self.bgcolour)
+            baud_rate_label.grid(row=4, column=0)
+
+            # Text Entry box layout properties
+            self.baud_rate_selection = self.combobox(self.root,
+                                                     values=self.baud_rates,
+                                                     font=('Verdana', 10))
+            self.baud_rate_selection.grid(row=4, column=1)
+
+            # Button layout properties
+            start_button = self.button(width=18,
+                                       text='Start',
+                                       command=self.start)
+            start_button.grid(row=6, column=1)
+            stop_button = self.button(width=10,
+                                      text='Stop',
+                                      command=self.pause)
+            stop_button.grid(row=6, column=0)
+
+        def set_menubar(self):
+
+            # Create menubar to display menu and its options
+            menubar = Menu(self.root)
+            self.root.config(menu=menubar)
+
+            # File menu
+            filemenu = Menu(menubar, tearoff=0)
+            filemenu.add_command(label='Save As', command=self.save)
+            filemenu.add_command(label='Clear', command=self.clear_all_entries)
+            filemenu.add_command(label='Quit', command=self.wquit)
+            menubar.add_cascade(label='File', menu=filemenu)
+
+            # Options Menu
+            options = Menu(menubar, tearoff=0)
+            options.add_checkbutton(label='Timestamp', variable=self.timestamp)
+            options.add_command(label='Refresh port list',
+                                command=self.get_ports)
+            options.add_command(label='Default location',
+                                command=self.app.def_location.show_window)
+            options.add_command(label='Help', command=self.app.help.show)
+            menubar.add_cascade(label='Options', menu=options)
+
+        def start(self, event=None):
+
+            try:
+
+                # Obtain port number and baud rate info from UI
+                port_name = self.serial_port_selection.get()
+                baud_rate = self.baud_rate_selection.get()
+
+                # Raise exception for empty or invalid inputs
+                if not port_name:
+                    raise ValueError('Port name is empty')
+                # Exception automatically raised if conversion fails
+                baud_rate = int(baud_rate)
+
+                timestamp_status = self.timestamp.get()
+                selected_ext = self.ext_dict[self.ext.get()]
+
+                # Set flag to true for starting after its was stopped once
+                self.slogger.log = True
+                t1 = Thread(target=self.slogger.capture,
+                            args=(port_name, baud_rate, timestamp_status,
+                                  selected_ext))
+
+                if self.slogger.log:
+                    t1.start()
+                else:
+                    t1.join()
+
+            except Exception as e:
+
+                error_message = f'Please check whether you have entered correct port number or baud rate. {str(e)}'
+                messagebox.showerror('Error ', error_message)
+                self.logger.error(error_message)
+
+        # Function to pause running of the logger. Mapped to stop button
+
+        def pause(self):
+
+            self.logger.info('Pausing')
+            self.slogger.stop_capture()  # Stop logging
+            self.logger.info('All data while paused is not logged')
+
+        # Function to obtain or refresh available port info
+        def get_ports(self):
+
+            self.ports_list = self.slogger.find_all_ports()
+            self.draw_elements()
+
+        # Function to stop the logging. Sets log flag to false.
+        # Mapped to quit menu in menu bar
+
+        def wquit(self):
+
+            self.slogger.stop_capture()  # Stop logging
+            if self.unsaved:
+                res = messagebox.askyesno(
+                    "Log not saved",
+                    "The current log is not saved. Would you like to save it before closing?"
+                )
+                if res:
+                    self.save()
+            self.root.destroy()  # Quit self.root tkinter window
+
+        # Function to save data to desired file. Mapped to save in File menu
+
+        def save(self):
+
+            self.pause()
+
+            result_file = asksaveasfile(
+                filetypes=[('Text Document', '*.txt'),
+                           ('Comma Seperated Values', '*.csv'),
+                           ('JavaScript Object Notation', '*.json'),
+                           ('All files', '*.*')],
+                defaultextension=(
+                    'Text Document',
+                    '*.txt'))  # Select file name and location through GUI
+
+            self.slogger.save_capture(result_file)
+
+            messagebox.showinfo(
+                "File Saved", f"The file has been saved in {result_file.name}")
+
+            self.unsaved = False
+
+            self.clear_all_entries()
+
+        # Function to clear all existing enteries in Entry boxes
+
+        def clear_all_entries(self):
+
+            self.serial_port_selection.delete(0, 'end')
+            self.baud_rate_selection.delete(0, 'end')
+
+    class help_window(object):
+        def __init__(self, app_class):
+
+            self.app = app_class
+            self.root = self.app.root
+            self.bgcolour = self.app.bgcolour
+            self.title = self.app.title
+            self.icon = self.app.icon
+            self.label = self.app.label
+            self.logger = self.app.logger
+            self.window = self.app.window
+
+            lic_lines = [
+                f'''Thank you for using Serial Data logger {self.app.version}.
+                (C) 2020-2021 mark-IV-II under MIT License'''
+            ]
+
+            try:
+                with open("LICENSE", "r") as lic_file:
+                    lic_lines = lic_file.readlines()
+            except Exception as e:
+                self.logger.warn(f'{self.get_time()}: Error loading logo. {e}')
+
+            self.about_line = ''.join(lic_lines)
+            lines = [
+                "The connected device driver must be installed seperately",
+                "Press enter key to start",
+                "Timestamp feature is disabled by default",
+                "For further queries please connect via my github page"
+            ]
+            self.help_line = ''.join(f'{i}.\n' for i in lines)
+            self.source_line = "Source code on Github"
+            self.attr_line = "Icons from Thoseicons.com under CC BY 3.0"
+
+        def callback(self, url):
+
+            webbrowser.open_new(url)
+
+        def show(self):
+
+            window = self.window(self.root)
+            window.title('Help & About')
+            window.configure(background=self.bgcolour)
+
+            try:
+                window.iconphoto(True, tkinter.PhotoImage(file='help.png'))
+            except Exception as e:
+                self.logger.warn(f'Error loading logo. {e}')
+
+            # Layout properties with weights for responsive UI
+            window.columnconfigure([0, 1], weight=1, minsize=50)
+            window.rowconfigure([0, 1, 2], weight=1, minsize=50)
+
+            # Labels layout
+            about_label = self.label(master=window,
+                                     text=self.about_line,
+                                     background=self.bgcolour,
+                                     relief='raised',
+                                     font=('Arial 10'))
+            about_label.grid(row=0, columnspan=2, padx=15, pady=15)
+            # about_label.pack(side=LEFT, fill=X)
+
+            help_label = self.label(window,
+                                    text=self.help_line,
+                                    background=self.bgcolour,
+                                    font=('Arial 11'))
+            help_label.grid(row=1, columnspan=2, padx=5, pady=5)
+
+            source_label = self.label(window,
+                                      text=self.source_line,
+                                      foreground="blue",
+                                      cursor="hand2",
+                                      background=self.bgcolour,
+                                      font=('Arial 11'))
+            source_label.bind(
+                '<Button-1>', lambda e: self.callback(
+                    'https://github.com/mark-IV-II/serial_datalogger'))
+            source_label.grid(row=2, column=0, padx=2, pady=2)
+
+            attr_label = self.label(window,
+                                    text=self.attr_line,
+                                    foreground="blue",
+                                    cursor="hand2",
+                                    background=self.bgcolour,
+                                    font=('Arial 11'))
+            attr_label.bind(
+                '<Button-1>',
+                lambda e: self.callback('https://thoseicons.com/freebies/'))
+            attr_label.grid(row=2, column=1, padx=2, pady=2)
+
+    class default_location(object):
+        def __init__(self, app_class):
+
+            # self.output_dir = self.get_location()
+            self.app = app_class
+            self.root = self.app.root
+            self.bgcolour = self.app.bgcolour
+            self.title = self.app.title
+            self.icon = self.app.icon
+            self.l_window = None
+            self.loc_entry = None
+            self.current_loc_label = None
+            self.entry = self.app.entry
+            self.label = self.app.label
+            self.button = self.app.button
+            self.logger = self.app.logger
+
+        def select_directory(self):
+
+            self.app.output_dir = askdirectory(initialdir=os.getcwd())
+            self.app.slogger.set_out_path(self.app.output_dir)
+            self.clear_window()
+            self.draw_elements()
+
+        def show_window(self):
+
+            self.l_window = self.app.window(self.root)
+            window = self.l_window
+
+            window.title('Set default directory to save')
+            window.configure(background=self.bgcolour)
+            try:
+                window.iconphoto(True, self.icon)
+            except Exception as e:
+                self.logger.warn(f"Error loading logo: {str(e)}")
+            # self.window=window
+            self.draw_elements()
+
+        def draw_elements(self):
+
+            window = self.l_window
+            # Layout properties with weights for responsive UI
+            window.columnconfigure(0, weight=2, minsize=600)
+            window.columnconfigure(1, weight=1, minsize=50)
+            window.rowconfigure([0, 1, 2], weight=1, minsize=50)
+
+            self.loc_entry = self.entry(master=window, justify='left')
+            self.logger.debug(self.app.output_dir)
+            self.loc_entry.insert(0, self.app.output_dir)
+            self.loc_entry.grid(row=1, column=0)
+
+            get_loc_btn = self.button(master=window,
+                                      text='Browse',
+                                      command=self.select_directory)
+            get_loc_btn.grid(row=1, column=1, padx=15)
+
+            current_loc = f"Current location is {self.app.output_dir}"
+            self.current_loc_label = self.label(master=window,
+                                                text=current_loc,
+                                                font=('Arial', 10),
+                                                background=self.bgcolour)
+            self.current_loc_label.grid(row=2, column=0)
+
+            ok_btn = self.button(master=window,
+                                 text='Save',
+                                 command=self.set_location)
+            ok_btn.grid(row=2, column=1)
+
+        def get_location(self):
+
+            loc = ''
+
+            try:
+                with open('config.json', 'r') as config_file:
+                    config = json.load(config_file)
+                    loc = config['Default location']
+            except Exception as e:
+                self.logger.warn(
+                    f'Error finding config file: {e}. Using temp folder')
+
+            return loc
+
+        def set_location(self):
+
+            try:
+                with open('config.json', 'w') as config_file:
+                    config = {'Default location': self.app.output_dir}
+                    json.dump(config, config_file)
+            except Exception as e:
+                self.logger.error(
+                    f'Error writing config: {e}. Default location not set')
+
+            finally:
+                self.clear_window()
+                self.draw_elements()
+
+        def clear_window(self):
+
+            self.loc_entry.delete(0, 'end')
+            self.current_loc_label.destroy()
 
 
-#Function to pause running of the logger. All data while paused is not logged. Mapped to stop button
-def pause():
-
-    print('Pausing')
-    slogger.log=False #Set flag to false to stop logging temporarily
-    print('All data while paused is not logged')
-
-#Function to obtain or refresh available port info
-def get_ports():
-
-    global port_list
-    port_list=slogger.find_all_ports()
-    root.update()
-
-
-#Function to stop the logging. Sets log flag to false. Mapped to quit menu
-def wquit():
-
-    slogger.stop() #Stop logging
-    root.destroy() #Quit root tkinter window
-
-
-#Function to save data to desired file. Mapped to save in File menu
-def save():
-
-    result_file = asksaveasfile(filetypes=[(
-        'Text Document', '*.txt'), ('All files', '*.*')], defaultextension=('Text Document', '*.txt')) #Select file name and location through GUI
-
-    slogger.save_capture(result_file)
-
-    messagebox.showinfo("File Saved"," The file has been saved")
-
-    clear_all_entries()
-
-
-#Function to clear all existing enteries in Entry boxes
-def clear_all_entries():
-
-    serial_port_selection.delete(0, 'end')
-    baud_rate_entry.delete(0, 'end')
-
-#Show help window
-def help_window():
-
-    window=tkinter.Toplevel()
-    window.title('Help & About')
-    window.configure(background="#FFFFFF")
-
-    try:
-        p2 = tkinter.PhotoImage(file = 'help.png')
-        window.iconphoto(True, p2)
-    except: None
-
-
-    about_line = "Thank you for using Serial Data logger v"+VERSION+"\n(C) 2020 Aditya Anand under MIT License "
-    help_line = "The drivers required for the device connected must be installed seperately.\nPress enter key to start.\nTimestamp feature is disabled by default.\nFor further queries please connect via my github page."
-    source_line = "Source code : https://github.com/mark-IV-II/serial_datalogger"
-
-
-    # Layout properties with weights for responsive UI 
-    window.columnconfigure(0, weight=1, minsize=50)
-    window.rowconfigure([0, 1, 2], weight=1, minsize=50)
-
-    #Labels layout
-    about_label = ttk.Label(window, text=about_line, background="#FFFFFF")
-    about_label.config(font=('Arial 10'))
-    about_label.grid(row=0,column=0,padx=10,pady=10)
-
-    help_label = ttk.Label(window, text=help_line, background="#FFFFFF")
-    help_label.config(font=('Arial 9'))
-    help_label.grid(row=1,column=0,padx=15,pady=15)
-    
-    source_label = ttk.Label(window, text=source_line, background="#FFFFFF")
-    source_label.config(font=('Arial 9'))
-    source_label.grid(row=2,column=0,padx=10,pady=10)
-
-
-
-slogger=logger(log=True) #Intiliaze logger
-
-#Tkinter window properties
-root = Tk()
-root.title(TITLE)
-try:
-    root.iconphoto(False, tkinter.PhotoImage(file = 'icon.png'))
-except: None
-
-#Theme properties
-root.configure(background='#FFFFFF')
-ttk.Style().theme_use('clam')
-
-
-timestamp = tkinter.IntVar() #Tkinter Integer variable to set timestamp checkbox in menu
-get_ports() #Find all serial ports available in the computer
-
-
-#Create menubar to display menu and its options
-menubar=Menu(root) 
-root.config(menu=menubar)
-
-#Keyboard shortcuts for easy operation
-root.bind('<Return>',start) #Mapping Enter key to start function
-
-
-#Layout properties with weights for responsive UI
-root.columnconfigure(0, weight=3, minsize=400)
-root.rowconfigure(0, weight=2,minsize=80)
-root.rowconfigure([1,2,5,7,8], weight=1, minsize=50)
-root.rowconfigure([3,4,6], weight=1, minsize=35)
-
-#Dropdown menu with port names
-serial_port_selection = ttk.Combobox(root, values=port_list, font=('Verdana', 10))
-serial_port_selection.grid(row=2,column=0)
-
-#Label layout properties
-heading_label = ttk.Label(
-    text='Fill the below details and click start', font=('Verdana', 13), background='#FFFFFF')
-heading_label.grid(row=0,column=0)
-
-serialport_name_label = ttk.Label(
-    text='Select or Type Serial (or USB) Port name',  font=('Verdana', 11), background='#FFFFFF')
-serialport_name_label.grid(row=1,column=0)
-
-baud_rate_label = ttk.Label(text='Enter Baud rate:', font=('Verdana', 11), background='#FFFFFF')
-baud_rate_label.grid(row=4,column=0)
-
-#Text Entry box layout properties
-baud_rate_entry = ttk.Entry(justify='left', width=8)
-baud_rate_entry.grid(row=5,column=0)
-
-#Button layout properties
-start_button = ttk.Button(width=18, text='Start', command=start)
-start_button.grid(row=7,column=0)
-stop_button = ttk.Button(width=10, text='Stop', command=pause)
-stop_button.grid(row=8,column=0)
-
-# File menu 
-filemenu = Menu(menubar, tearoff = 0)
-filemenu.add_command(label='Save', command=save)
-filemenu.add_command(label='Clear', command=clear_all_entries)
-filemenu.add_command(label='Quit', command=wquit)
-menubar.add_cascade(label='File', menu=filemenu)
-
-#Options Menu
-options = Menu(menubar, tearoff = 0)
-options.add_checkbutton(label='Timestamp', variable=timestamp)
-options.add_command(label='Refreh port list', command=slogger.find_all_ports)
-options.add_command(label='Help', command=help_window)
-menubar.add_cascade(label='Options', menu=options)
-
-root.protocol("WM_DELETE_WINDOW", wquit) #Map close window button to custom quit function to prevent errors while closing
-root.mainloop()
+window = Tk()
+app = app_class(window).main_window
+window.mainloop()
