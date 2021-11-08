@@ -65,7 +65,7 @@ Initialise class variables. Accepted arguments are log - a flag to set whether t
 
 ---
 
-<a href="https://github.com/mark-IV-II/serial_datalogger/blob/tkinter/serlogger.py#L207"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/mark-IV-II/serial_datalogger/blob/tkinter/serlogger.py#L205"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `capture`
 
@@ -84,7 +84,7 @@ Capture data coming through serial port of the computer. Parameters include port
 
 ---
 
-<a href="https://github.com/mark-IV-II/serial_datalogger/blob/tkinter/serlogger.py#L163"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/mark-IV-II/serial_datalogger/blob/tkinter/serlogger.py#L161"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `find_all_ports`
 
@@ -108,7 +108,7 @@ Create a new file object with new file name
 
 ---
 
-<a href="https://github.com/mark-IV-II/serial_datalogger/blob/tkinter/serlogger.py#L255"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/mark-IV-II/serial_datalogger/blob/tkinter/serlogger.py#L253"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `save_capture`
 
@@ -120,7 +120,7 @@ Save captured data to desired file. Parameter: result_file - full path to save f
 
 ---
 
-<a href="https://github.com/mark-IV-II/serial_datalogger/blob/tkinter/serlogger.py#L155"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/mark-IV-II/serial_datalogger/blob/tkinter/serlogger.py#L153"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `set_out_path`
 
@@ -132,7 +132,7 @@ Set the output path for saving files. Arguments - new_path
 
 ---
 
-<a href="https://github.com/mark-IV-II/serial_datalogger/blob/tkinter/serlogger.py#L274"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/mark-IV-II/serial_datalogger/blob/tkinter/serlogger.py#L272"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `stop_capture`
 
