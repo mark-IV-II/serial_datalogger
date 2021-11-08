@@ -1,5 +1,5 @@
 __author__ = 'mark-IV-II'
-__version__ = '3.1.0-tk'
+__version__ = '3.1.1-tk'
 
 import tkinter
 import os
@@ -159,12 +159,12 @@ class app_class(object):
             # Label layout properties
             heading_label = self.label(
                 text='Fill the below details and click start',
-                font=('Verdana', 13),
+                font=('Helvetica', 13),
                 background=self.bgcolour)
             heading_label.grid(row=0, columnspan=2)
 
             format_select_label = self.label(text='Select output file format',
-                                             font=('Verdana', 11),
+                                             font=('Helvetica', 11),
                                              background=self.bgcolour)
             format_select_label.grid(row=1, column=0)
 
@@ -174,25 +174,25 @@ class app_class(object):
 
             serialport_name_label = self.label(
                 text='Select or Enter Serial (or USB) Port name',
-                font=('Verdana', 11),
+                font=('Helvetica', 11),
                 background=self.bgcolour)
             serialport_name_label.grid(row=2, column=0)
 
             # Dropdown menu with port names
             self.serial_port_selection = self.combobox(self.root,
                                                        values=self.ports_list,
-                                                       font=('Verdana', 10))
+                                                       font=('Helvetica', 10))
             self.serial_port_selection.grid(row=2, column=1)
 
             baud_rate_label = self.label(text='Select or Enter Baud rate:',
-                                         font=('Verdana', 11),
+                                         font=('Helvetica', 11),
                                          background=self.bgcolour)
             baud_rate_label.grid(row=4, column=0)
 
             # Text Entry box layout properties
             self.baud_rate_selection = self.combobox(self.root,
                                                      values=self.baud_rates,
-                                                     font=('Verdana', 10))
+                                                     font=('Helvetica', 10))
             self.baud_rate_selection.grid(row=4, column=1)
 
             # Button layout properties
@@ -205,6 +205,13 @@ class app_class(object):
                                       command=self.pause)
             stop_button.grid(row=6, column=0)
 
+            warning_label = self.label(
+                text="""Warning: Enabling Raw mode will create formatting issues.\nPlease use text file without timestamps for a clean output""",
+                font=('Helvetica', 10),
+                background=self.bgcolour
+            )
+            warning_label.grid(row=7, column=0, columnspan=2)
+
         def set_menubar(self):
 
             # Create menubar to display menu and its options
@@ -213,11 +220,12 @@ class app_class(object):
 
             # File menu
             filemenu = Menu(menubar, tearoff=0)
+            filemenu.add_command(
+                label="New file", command=self.slogger.new_file)
             filemenu.add_command(label='Save As', command=self.save)
             filemenu.add_command(label='Clear', command=self.clear_all_entries)
             filemenu.add_command(label='Quit', command=self.wquit)
             menubar.add_cascade(label='File', menu=filemenu)
-
             # Options Menu
             options = Menu(menubar, tearoff=0)
             options.add_checkbutton(
@@ -355,20 +363,21 @@ class app_class(object):
                 (C) 2020-2021 mark-IV-II under MIT License'''
             ]
 
-            try:
-                with open("LICENSE", "r") as lic_file:
-                    lic_lines = lic_file.readlines()
-            except Exception as e:
-                self.logger.warn(f'{self.get_time()}: Error loading logo. {e}')
-
             self.about_line = ''.join(lic_lines)
             lines = [
                 "The connected device driver must be installed seperately",
-                "Press enter key to start",
-                "Timestamp feature is disabled by default",
-                "For further queries please connect via my github page"
+                "Supports three different file formats (.txt, .csv, .json)",
+                "New file - Save log to a new file. Stops current run. Requires logging to be started again",
+                "Save - Save current log file as desired",
+                "Clear - Clear all existing entries in the window",
+                "Quit - Quit the app. Will prompt to save file if unsaved",
+                "Timestamp - Add a timestamp to the left of each line being saved. This is off by default",
+                "Raw mode - Read all the bytes from the port without formatting.\nImproves the logging speed, but formatting won't be clean.\nPlease use text file without timestamps for a clean output",
+                "Refresh port list - Refresh and show the serial ports recognised by the OS",
+                "Default location - Set the location where all log files will be saved.\nLocation is remembered even if app is closed once set",
+                "Please feel free raise an issue or pull request on the github"
             ]
-            self.help_line = ''.join(f'{i}.\n' for i in lines)
+            self.help_line = ''.join(f'{i}.\n\n' for i in lines)
             self.source_line = "Source code on Github"
             self.attr_line = "Icons from Thoseicons.com under CC BY 3.0"
 
@@ -381,6 +390,7 @@ class app_class(object):
             window = self.window(self.root)
             window.title('Help & About')
             window.configure(background=self.bgcolour)
+            # window.geometry('200x1000')
 
             try:
                 window.iconphoto(True, tkinter.PhotoImage(file='help.png'))
@@ -396,14 +406,14 @@ class app_class(object):
                                      text=self.about_line,
                                      background=self.bgcolour,
                                      relief='raised',
-                                     font=('Arial 10'))
-            about_label.grid(row=0, columnspan=2, padx=15, pady=15)
+                                     font=('Helvetica 10'))
+            about_label.grid(row=0, columnspan=2, padx=5, pady=5)
             # about_label.pack(side=LEFT, fill=X)
 
             help_label = self.label(window,
                                     text=self.help_line,
                                     background=self.bgcolour,
-                                    font=('Arial 11'))
+                                    font=('Helvetica 9'))
             help_label.grid(row=1, columnspan=2, padx=5, pady=5)
 
             source_label = self.label(window,
@@ -411,22 +421,22 @@ class app_class(object):
                                       foreground="blue",
                                       cursor="hand2",
                                       background=self.bgcolour,
-                                      font=('Arial 11'))
+                                      font=('Helvetica 8'))
             source_label.bind(
                 '<Button-1>', lambda e: self.callback(
                     'https://github.com/mark-IV-II/serial_datalogger'))
-            source_label.grid(row=2, column=0, padx=2, pady=2)
+            source_label.grid(row=2, column=0, padx=2, pady=0)
 
             attr_label = self.label(window,
                                     text=self.attr_line,
                                     foreground="blue",
                                     cursor="hand2",
                                     background=self.bgcolour,
-                                    font=('Arial 11'))
+                                    font=('Helvetica 8'))
             attr_label.bind(
                 '<Button-1>',
                 lambda e: self.callback('https://thoseicons.com/freebies/'))
-            attr_label.grid(row=2, column=1, padx=2, pady=2)
+            attr_label.grid(row=2, column=1, padx=2, pady=0)
 
     class default_location(object):
         def __init__(self, app_class):

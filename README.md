@@ -5,10 +5,38 @@ This project helps in reading and saving data from a serial port (or USB) connec
 
 Note: The drivers required for the device connected must be installed seperately.
 
-Screen shot
+### Screenshot
 
 ![image](https://user-images.githubusercontent.com/58716239/140685682-5c6af2dd-8583-4318-b377-0355dfd820d5.png)
 
+## Features
+
+### Output file format
+
+Supports three different file formats.
+* Text file - extension `.txt`
+* Comma Seperated Value - extension `.csv`
+* JavaScript Object Notation - extension `.json`
+
+### File Menu
+
+* New file - Save log to a new file. Stops current run. Requires logging to be started again.
+* Save - Save current log file as desired
+* Clear - Clear all existing entries in the window
+* Quit - Quit the app nicely. Will prompt to save file if unsaved.
+
+### Options Menu
+
+* Timestamp - Add a timestamp to the left of each line being saved. This is off by default
+* Raw mode - Read all the bytes from the port without formatting. Improves the logging speed, but formatting won't be clean. Please use text file without timestamps for a clean output
+* Refresh port list - Refresh and show the serial ports recognised by the OS
+* Default location - Set the location where all log files will be saved. Location is remembered even if app is closed once set.
+* Help - General help, about and credits regarding the app
+
+### Operating System
+Supports Windows, Linux and MacOSX. Linux and MacOSX support is experimental
+
+_[Icons from Thoseicons.com under CC BY 3.0](https://thoseicons.com/freebies/)_
 
 <!-- markdownlint-disable -->
 
@@ -107,4 +135,4 @@ Stop execution of serial logger. Sets internal log flag to False
 
 ---
 
-_The documentation was automatically generated via [lazydocs](https://github.com/ml-tooling/lazydocs)._
+_This part of the documentation was automatically generated via [lazydocs](https://github.com/ml-tooling/lazydocs)._

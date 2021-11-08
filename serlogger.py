@@ -1,5 +1,5 @@
 __author__ = 'mark-IV-II'
-__version__ = '2.1.0-tk'
+__version__ = '2.1.1-tk'
 __name__ = "Serial Datalogger API"
 
 from io import TextIOWrapper
@@ -98,9 +98,8 @@ class logger:
         )
         if timestamp:
             string = f'{self._get_time()}: {string}'
-        self.bg_writer.run(
-            string=string, filename=self.full_file_name, mode='a+'
-        )
+        with open(self.full_file_name, "a+") as logfile:
+            logfile.write(string)
         self.api_logger.info(string)
 
     def _write_to_csv(self, string, timestamp=0):
@@ -111,9 +110,8 @@ class logger:
 
         if timestamp:
             string = f'{self._get_time()},{string}'
-        self.bg_writer.run(
-            string=string, filename=self.full_file_name, mode='a+'
-        )
+        with open(self.full_file_name, "a+") as logfile:
+            logfile.write(string)
         self.api_logger.info(string)
 
     def _write_to_json(self, string, timestamp=0):
@@ -277,3 +275,16 @@ class logger:
         self.api_logger.info("Stopping. All data while paused is not logged")
         self.log = False  # Set flag to false to stop logging
         time.sleep(1)
+
+    def new_file(self):
+        """Create a new file object with new file name"""
+        self.stop_capture()
+        self.file_name = f'Log-{self._get_time(file=True)}'
+        self.file_names = {
+            'txt': f'{self.file_name}.txt',
+            'csv': f'{self.file_name}.csv',
+            'json': f'{self.file_name}.json'
+        }
+        self.api_logger.info(
+            "New file name generated. Start capturing to save to new file"
+        )
