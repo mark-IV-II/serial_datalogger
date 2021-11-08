@@ -1,5 +1,5 @@
 __author__ = 'mark-IV-II'
-__version__ = '3.0.0-beta'
+__version__ = '3.1.0-tk'
 
 import tkinter
 import os
