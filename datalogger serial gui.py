@@ -60,7 +60,9 @@ class app_class(object):
 
         if log_flag:
 
-            print('Logging is enabled, skipping new logger initialisation')
+            self.logger(
+                'Logging is already enabled, skipping logger initialisation'
+            )
 
         else:
 
@@ -115,6 +117,8 @@ class app_class(object):
 
             # Tkinter Integer variable to set timestamp checkbox in menu
             self.timestamp = IntVar()
+            # Tkinter Integer variable to set raw mode checkbox in menu
+            self.raw_mode_flag = IntVar()
             # Tkinter String variable to set file format
             self.ext = StringVar()
 
@@ -216,11 +220,19 @@ class app_class(object):
 
             # Options Menu
             options = Menu(menubar, tearoff=0)
-            options.add_checkbutton(label='Timestamp', variable=self.timestamp)
-            options.add_command(label='Refresh port list',
-                                command=self.get_ports)
-            options.add_command(label='Default location',
-                                command=self.app.def_location.show_window)
+            options.add_checkbutton(
+                label='Timestamp', variable=self.timestamp
+            )
+            options.add_checkbutton(
+                label="Raw Mode", variable=self.raw_mode_flag
+            )
+            options.add_command(
+                label='Refresh port list', command=self.get_ports
+            )
+            options.add_command(
+                label='Default location',
+                command=self.app.def_location.show_window
+            )
             options.add_command(label='Help', command=self.app.help.show)
             menubar.add_cascade(label='Options', menu=options)
 
@@ -239,13 +251,20 @@ class app_class(object):
                 baud_rate = int(baud_rate)
 
                 timestamp_status = self.timestamp.get()
+                raw_mode = self.raw_mode_flag.get()
                 selected_ext = self.ext_dict[self.ext.get()]
 
                 # Set flag to true for starting after its was stopped once
                 self.slogger.log = True
-                t1 = Thread(target=self.slogger.capture,
-                            args=(port_name, baud_rate, timestamp_status,
-                                  selected_ext))
+                t1 = Thread(
+                    target=self.slogger.capture, args=(
+                        port_name,
+                        baud_rate,
+                        timestamp_status,
+                        raw_mode,
+                        selected_ext
+                    )
+                )
 
                 if self.slogger.log:
                     t1.start()
@@ -254,7 +273,7 @@ class app_class(object):
 
             except Exception as e:
 
-                error_message = f'Please check whether you have entered correct port number or baud rate. {str(e)}'
+                error_message = f'''Please check whether you have entered correct port number or baud rate. {str(e)}'''
                 messagebox.showerror('Error ', error_message)
                 self.logger.error(error_message)
 
@@ -281,7 +300,8 @@ class app_class(object):
             if self.unsaved:
                 res = messagebox.askyesno(
                     "Log not saved",
-                    "The current log is not saved. Would you like to save it before closing?"
+                    """The current log is not saved.
+                    Would you like to save it before closing?"""
                 )
                 if res:
                     self.save()

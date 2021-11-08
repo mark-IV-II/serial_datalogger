@@ -1,9 +1,12 @@
 __author__ = 'mark-IV-II'
-__version__ = '2.0.0'
+__version__ = '2.1.0-tk'
+__name__ = "Serial Datalogger API"
 
+from io import TextIOWrapper
 import os  # For writing to temp file
 import sys  # To identify platform
 import serial  # pip install pyserial
+import time  # To set a wait time
 import json  # to write to json file
 import logging  # for logging to console and file
 from logging import DEBUG, INFO, WARN
@@ -14,16 +17,19 @@ from tempfile import gettempdir
 
 
 class logger:
-    '''Serial data Logger  class. Variable: log, save_dir.
-    Functions: find_all_ports, capture, save_capture, stop_capture, .'''
+    '''Serial data Logger  class.'''
 
-    # Initialise class parameters
     def __init__(self, log=True, save_dir=None):
+        '''Initialise class variables. Accepted arguments are
+            log - a flag to set whether to start logging
+            save_dir - directory or location to which log files are saved'''
 
         self.api_logger = logging.getLogger('API logger')
         self.api_logger.setLevel(DEBUG)
 
-        fh = logging.FileHandler(filename='api_error.log', mode='a')
+        fh = logging.FileHandler(
+            filename=f"{__name__} v{__version__}.log", mode='a'
+        )
         fh.setLevel(WARN)
         ch = logging.StreamHandler()
         ch.setLevel(INFO)
@@ -41,15 +47,15 @@ class logger:
         self.api_logger.addHandler(fh)
         self.api_logger.addHandler(ch)
 
-        # self.api_logger.basicConfig(level=logging.INFO)
-
         self.file_name = f'Log-{self._get_time(file=True)}'
         self.json_warn = False
+
         self.out_format_select = {
             'txt': self._write_to_txt,
             'csv': self._write_to_csv,
             'json': self._write_to_json
         }
+
         self.file_names = {
             'txt': f'{self.file_name}.txt',
             'csv': f'{self.file_name}.csv',
@@ -61,9 +67,11 @@ class logger:
             self.dir_name = os.path.normpath(save_dir)
 
             logfile = open(
-                os.path.join(self.dir_name, f'{self.file_name}.temp'), "w")
+                os.path.join(self.dir_name, f'{self.file_name}.temp'), "w"
+            )
             self.api_logger.info(
-                f'File write permissions checked for: {self.dir_name}')
+                f'File write permissions checked for: {self.dir_name}'
+            )
             logfile.close()
             os.remove(logfile.name)
             self.is_temp = False
@@ -74,8 +82,8 @@ class logger:
             self.api_logger.warn(f"Error setting up given directory: {e}.")
             self.api_logger.warn("Using temporary directory instead")
 
-    # Get current time in specified format
     def _get_time(self, file=False):
+        """Get current time in required format"""
 
         if file:
             return datetime.now().strftime("%Y-%m-%d %H-%M-%S")
@@ -83,34 +91,47 @@ class logger:
             return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def _write_to_txt(self, string, timestamp=0):
-        self.full_file_name = os.path.join(self.dir_name,
-                                           self.file_names['txt'])
-        with open(self.full_file_name, 'a+') as logfile:
-            if timestamp:
-                string = f'{self._get_time()}: {string}'
-            logfile.write(f'{string}')
-            self.api_logger.info(string)
+        """Write output to a plain text file"""
+
+        self.full_file_name = os.path.join(
+            self.dir_name, self.file_names['txt']
+        )
+        if timestamp:
+            string = f'{self._get_time()}: {string}'
+        self.bg_writer.run(
+            string=string, filename=self.full_file_name, mode='a+'
+        )
+        self.api_logger.info(string)
 
     def _write_to_csv(self, string, timestamp=0):
-        self.full_file_name = os.path.join(self.dir_name,
-                                           self.file_names['csv'])
-        with open(self.full_file_name, 'a+') as logfile:
+        """Write output to a comma seperated file"""
+        self.full_file_name = os.path.join(
+            self.dir_name, self.file_names['csv']
+        )
 
-            if timestamp:
-                string = f'{self._get_time()},{string}'
-            logfile.write(f'{string}')
+        if timestamp:
+            string = f'{self._get_time()},{string}'
+        self.bg_writer.run(
+            string=string, filename=self.full_file_name, mode='a+'
+        )
         self.api_logger.info(string)
 
     def _write_to_json(self, string, timestamp=0):
-        self.full_file_name = os.path.join(self.dir_name,
-                                           self.file_names['json'])
+        '''Write output to a JSON file.
+        Experimental, could be slow or in wrong format in certian situations'''
+
+        self.full_file_name = os.path.join(
+            self.dir_name, self.file_names['json']
+        )
         log_dict = {}
         if not self.json_warn:
             self.api_logger.warn(
-                'Saving to JSON adds timestamp regardless of timestamp flag')
+                'Saving to JSON adds timestamp regardless of timestamp flag'
+            )
             self.json_warn = True
 
         log_dict[self._get_time()] = string
+
         try:
             with open(self.full_file_name, 'ab+') as logfile:
                 logfile.seek(0, 2)
@@ -127,10 +148,13 @@ class logger:
                     logfile.write(json_string.encode())
                     logfile.write(']'.encode())
             self.api_logger.info(json_string)
+
         except Exception as e:
             self.api_logger.error(f'Error with json file: {e}')
 
     def set_out_path(self, new_path):
+        """Set the output path for saving files. Arguments - new_path"""
+
         self.dir_name = os.path.normpath(new_path)
         self.full_file_name = os.path.join(self.dir_name, self.file_name)
         self.is_temp = False
@@ -138,7 +162,7 @@ class logger:
     # Function to list all available serial ports
     def find_all_ports(self):
         '''Return a list of port names found. OS independent in nature.
-        Unsupported OS raises OSError exception'''
+        Unsupported OS raises OSError exception. Linux & MacOS experimental'''
 
         port_list = []  # List to return ports information
 
@@ -163,6 +187,7 @@ class logger:
             raise OSError("Unsupported Platform/OS")
 
         # Fill the return list with information found
+
         if ports:
             self.api_logger.info('Available ports are:')
             for port, desc, hwid in sorted(ports):
@@ -170,7 +195,8 @@ class logger:
                 self.api_logger.info(f"{port}: {desc} with id: {hwid}")
         else:
             self.api_logger.warn(
-                'No serial ports detected. Please make sure the device is connected properly'
+                '''No serial ports detected.
+                Please make sure the device is connected properly'''
             )
             port_list.append('No ports found')
 
@@ -178,12 +204,14 @@ class logger:
 
     # Main function that captures the data from serial port
 
-    def capture(self,
-                port_name,
-                baud_rate=9600,
-                timestamp=0,
-                format_ext='txt',
-                decoder='utf-8'):
+    def capture(
+            self,
+            port_name,
+            baud_rate=9600,
+            timestamp=0,
+            raw_mode=0,
+            format_ext='txt',
+            decoder='utf-8'):
         '''Capture data coming through serial port of the computer.
         Parameters include port number, baud rate,
         Integer flag to add timestamp to files,
@@ -202,15 +230,20 @@ class logger:
             while self.log:
                 # ic(self.full_file_name)
                 # print('logging') #-- can be used for debugging
-                line = data.readline()
+                if raw_mode:
+                    line = data.read(data.in_waiting)
+                else:
+                    line = data.readline()
+
                 line = line.decode(decoder)
+
+                # Skip if line is empty
                 if line == '':
                     continue
-                # check if data needs to be timestamped
-                line = line.strip('\n')
-                self.out_format_select[format_ext](string=line,
-                                                   timestamp=timestamp)
-                # print(repr(line))
+
+                self.out_format_select[format_ext](
+                    string=line, timestamp=timestamp
+                )
         # Catch exception, print the error and stop logging
         except Exception as e:
 
@@ -219,7 +252,7 @@ class logger:
 
     # Function to save the data to a file
 
-    def save_capture(self, result_file):
+    def save_capture(self, result_file: TextIOWrapper):
         '''Save captured data to desired file.
         Parameter: result_file - full path to save file'''
 
@@ -239,8 +272,8 @@ class logger:
     # Function to stop the logging. Sets log flag to false.
 
     def stop_capture(self):
-        '''Stop execution of logger.'''
+        """Stop execution of serial logger. Sets internal log flag to False"""
 
-        self.api_logger.info('stopping')
+        self.api_logger.info("Stopping. All data while paused is not logged")
         self.log = False  # Set flag to false to stop logging
-        # self.tmpfle.close() #Close the temperory file
+        time.sleep(1)
