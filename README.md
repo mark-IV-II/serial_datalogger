@@ -96,6 +96,18 @@ Return a list of port names found. OS independent in nature. Unsupported OS rais
 
 ---
 
+<a href="https://github.com/mark-IV-II/serial_datalogger/blob/v3.0.0/serlogger.py#L279"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>function</kbd> `new_file`
+
+```python
+new_file()
+```
+
+Create a new file object with new file name 
+
+---
+
 <a href="https://github.com/mark-IV-II/serial_datalogger/blob/v3.0.0/serlogger.py#L255"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `save_capture`
