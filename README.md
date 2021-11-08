@@ -12,7 +12,7 @@ Screen shot
 
 <!-- markdownlint-disable -->
 
-<a href="..\serlogger.py#L0"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/mark-IV-II/serial_datalogger/blob/v3.0.0/serlogger.py#L0"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 # <kbd>module</kbd> `Serial Datalogger API`
 
@@ -22,7 +22,7 @@ Screen shot
 ## <kbd>class</kbd> `logger`
 Serial data Logger  class. 
 
-<a href="..\serlogger.py#L22"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/mark-IV-II/serial_datalogger/blob/v3.0.0/serlogger.py#L22"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `__init__`
 
@@ -37,7 +37,7 @@ Initialise class variables. Accepted arguments are log - a flag to set whether t
 
 ---
 
-<a href="..\serlogger.py#L207"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/mark-IV-II/serial_datalogger/blob/v3.0.0/serlogger.py#L207"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `capture`
 
@@ -56,7 +56,7 @@ Capture data coming through serial port of the computer. Parameters include port
 
 ---
 
-<a href="..\serlogger.py#L163"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/mark-IV-II/serial_datalogger/blob/v3.0.0/serlogger.py#L163"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `find_all_ports`
 
@@ -68,7 +68,7 @@ Return a list of port names found. OS independent in nature. Unsupported OS rais
 
 ---
 
-<a href="..\serlogger.py#L255"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/mark-IV-II/serial_datalogger/blob/v3.0.0/serlogger.py#L255"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `save_capture`
 
@@ -80,7 +80,7 @@ Save captured data to desired file. Parameter: result_file - full path to save f
 
 ---
 
-<a href="..\serlogger.py#L155"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/mark-IV-II/serial_datalogger/blob/v3.0.0/serlogger.py#L155"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `set_out_path`
 
@@ -92,7 +92,7 @@ Set the output path for saving files. Arguments - new_path
 
 ---
 
-<a href="..\serlogger.py#L274"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/mark-IV-II/serial_datalogger/blob/v3.0.0/serlogger.py#L274"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>function</kbd> `stop_capture`
 
