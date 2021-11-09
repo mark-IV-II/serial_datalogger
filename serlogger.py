@@ -79,8 +79,8 @@ class logger:
         except Exception as e:
             self.dir_name = os.path.normpath(gettempdir())
             self.is_temp = True
-            self.api_logger.warn(f"Error setting up given directory: {e}.")
-            self.api_logger.warn("Using temporary directory instead")
+            self.api_logger.warning(f"Error setting up given directory: {e}.")
+            self.api_logger.warning("Using temporary directory instead")
 
     def _get_time(self, file=False):
         """Get current time in required format"""
@@ -123,7 +123,7 @@ class logger:
         )
         log_dict = {}
         if not self.json_warn:
-            self.api_logger.warn(
+            self.api_logger.warning(
                 'Saving to JSON adds timestamp regardless of timestamp flag'
             )
             self.json_warn = True
@@ -192,7 +192,7 @@ class logger:
                 port_list.append(port)
                 self.api_logger.info(f"{port}: {desc} with id: {hwid}")
         else:
-            self.api_logger.warn(
+            self.api_logger.warning(
                 '''No serial ports detected.
                 Please make sure the device is connected properly'''
             )
