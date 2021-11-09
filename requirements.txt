@@ -1,1 +1,4 @@
 pyserial >= 3.5
+pytest >=6.2.5
+pyside6 >=6.2.1
+qt_material >=2.8.13
