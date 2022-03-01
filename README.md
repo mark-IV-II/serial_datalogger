@@ -42,7 +42,7 @@ _[Icons from Thoseicons.com under CC BY 3.0](https://thoseicons.com/freebies/)_
 
 <a href="https://github.com/mark-IV-II/serial_datalogger/blob/tkinter/serlogger.py#L0"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-# <kbd>module</kbd> `Serial Datalogger API`
+# <kbd>module</kbd> `Serial Datalogger Module`
 
 
 ---
