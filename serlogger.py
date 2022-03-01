@@ -1,6 +1,6 @@
 __author__ = "mark-IV-II"
-__version__ = "2.1.0-qt"
-__name__ = "Serial Datalogger API"
+__version__ = "2.1.1-qt"
+__name__ = "Serial Datalogger Module"
 
 from io import TextIOWrapper
 import os  # For writing to temp file
@@ -23,8 +23,8 @@ class logger:
     # Initialise class parameters
     def __init__(self, log=True, save_dir=None):
 
-        self.api_logger = logging.getLogger("API logger")
-        self.api_logger.setLevel(DEBUG)
+        self.mod_logger = logging.getLogger("Module logger")
+        self.mod_logger.setLevel(DEBUG)
 
         fh = logging.FileHandler(
             filename=f"{__name__} v{__version__}.log", mode="a"
@@ -43,10 +43,10 @@ class logger:
         ch.setFormatter(formatter2)
 
         # add the handlers to the logger
-        self.api_logger.addHandler(fh)
-        self.api_logger.addHandler(ch)
+        self.mod_logger.addHandler(fh)
+        self.mod_logger.addHandler(ch)
 
-        # self.api_logger.basicConfig(level=logging.INFO)
+        # self.mod_logger.basicConfig(level=logging.INFO)
 
         self.file_name = f"Log-{self._get_time(file=True)}"
         self.json_warn = False
@@ -69,7 +69,7 @@ class logger:
             logfile = open(
                 os.path.join(self.dir_name, f"{self.file_name}.temp"), "w"
             )
-            self.api_logger.info(
+            self.mod_logger.info(
                 f"File write permissions checked for: {self.dir_name}"
             )
             logfile.close()
@@ -79,8 +79,8 @@ class logger:
         except Exception as e:
             self.dir_name = os.path.normpath(gettempdir())
             self.is_temp = True
-            self.api_logger.warning(f"Error setting up given directory: {e}.")
-            self.api_logger.warning("Using temporary directory instead")
+            self.mod_logger.warning(f"Error setting up given directory: {e}.")
+            self.mod_logger.warning("Using temporary directory instead")
 
     def _get_time(self, file=False):
         """Get current time in required format"""
@@ -100,7 +100,7 @@ class logger:
             string = f"{self._get_time()}: {string}"
         with open(self.full_file_name, "a+") as logfile:
             logfile.write(string)
-        self.api_logger.info(string)
+        self.mod_logger.info(string)
 
     def _write_to_csv(self, string, timestamp=0):
         """Write output to a comma seperated file"""
@@ -112,7 +112,7 @@ class logger:
             string = f"{self._get_time()},{string}"
         with open(self.full_file_name, "a+") as logfile:
             logfile.write(string)
-        self.api_logger.info(string)
+        self.mod_logger.info(string)
 
     def _write_to_json(self, string, timestamp=0):
         """Write output to a JSON file.
@@ -122,7 +122,7 @@ class logger:
 
         log_dict = {}
         if not self.json_warn:
-            self.api_logger.warning(
+            self.mod_logger.warning(
                 "Saving to JSON adds timestamp regardless of timestamp flag"
             )
             self.json_warn = True
@@ -144,10 +144,10 @@ class logger:
                     logfile.write(" , ".encode())
                     logfile.write(json_string.encode())
                     logfile.write("]".encode())
-            self.api_logger.info(json_string)
+            self.mod_logger.info(json_string)
 
         except Exception as e:
-            self.api_logger.error(f"Error with json file: {e}")
+            self.mod_logger.error(f"Error with json file: {e}")
 
     def set_out_path(self, new_path: str):
         """Set the output path for saving files. Arguments - new_path"""
@@ -220,12 +220,12 @@ class logger:
         # Fill the return list with information found
 
         if ports:
-            self.api_logger.info("Available ports are:")
+            self.mod_logger.info("Available ports are:")
             for port, desc, hwid in sorted(ports):
                 port_list.append(port)
-                self.api_logger.info(f"{port}: {desc} with id: {hwid}")
+                self.mod_logger.info(f"{port}: {desc} with id: {hwid}")
         else:
-            self.api_logger.warning(
+            self.mod_logger.warning(
                 "No serial ports detected. Please make sure the device is connected properly"
             )
             port_list.append("No ports found")
@@ -249,7 +249,7 @@ class logger:
         File formats - .txt (default), .csv, .json,
         Decoder - default utf-8"""
 
-        self.api_logger.info("Capturing")
+        self.mod_logger.info("Capturing")
 
         try:
 
@@ -276,7 +276,7 @@ class logger:
         # Catch exception, print the error and stop logging
         except Exception as e:
 
-            self.api_logger.error(f"Error: {str(e)}")
+            self.mod_logger.error(f"Error: {str(e)}")
             self.log = False  # Set flag to false to stop logging
 
     def save_capture(self, result_file: TextIOWrapper):
@@ -292,18 +292,18 @@ class logger:
                         file2.write(line)
 
             self.file_name = result_file.name
-            self.api_logger.info(f"File {self.file_name} saved")
+            self.mod_logger.info(f"File {self.file_name} saved")
             # Open a new temp file since old one is closed
             self.file_name = f"Log-{self._get_time(file=True)}.txt"
         except Exception as error:
-            self.api_logger.error(
+            self.mod_logger.error(
                 f"{error}. Temp file name: {self.full_file_name}. Output file name: {result_file}"
             )
 
     def stop_capture(self):
         """Stop execution of serial logger. Sets internal log flag to False"""
 
-        self.api_logger.info("Stopping. All data while paused is not logged")
+        self.mod_logger.info("Stopping. All data while paused is not logged")
         self.log = False  # Set flag to false to stop logging
         time.sleep(1)
 
@@ -316,6 +316,6 @@ class logger:
             'csv': f'{self.file_name}.csv',
             'json': f'{self.file_name}.json'
         }
-        self.api_logger.info(
+        self.mod_logger.info(
             "New file name generated. Start capturing to save to new file"
         )

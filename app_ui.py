@@ -1,4 +1,4 @@
-__version__ = "3.1.0-qt"
+__version__ = "3.1.1-qt"
 __author__ = "mark-IV-II"
 __appname__ = "Serial Datalogger"
 
@@ -119,7 +119,7 @@ class appWindow(QMainWindow):
         self.center = QtCore.Qt.AlignCenter
         self.setWindowTitle(f"{__appname__} {__version__}")
         self.resize(800, 450)
-        # self.api_thread = Thread
+        # self.mod_thread = Thread
 
         self.console_text_edit = ConsoleTextEdit(self)
 
