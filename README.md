@@ -1,7 +1,7 @@
 # Serial Datalogger
 
 ## Summary
-This project helps in reading and saving data from a serial port (or USB) connected to an arduino or other similar  boards. The GUI is build using PySide module.
+This project helps in reading and saving data from a serial port (or USB) connected to an arduino or other similar  boards. The GUI is build using PySide6 module.
 
 Note: The drivers required for the device connected must be installed seperately.
 
