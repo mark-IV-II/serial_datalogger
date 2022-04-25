@@ -12,12 +12,12 @@ from datetime import datetime
 from tkinter import Tk, ttk, messagebox, Menu, PhotoImage, IntVar, StringVar
 from tkinter.filedialog import asksaveasfile, askdirectory
 from threading import Thread
-from serlogger import logger
+from serlogger import Logger
 
-log_flag = False
+LOG_FLAG = False
 
 
-class app_class(object):
+class AppClass(object):
     def __init__(self, root):
 
         self.log_level = WARN
@@ -35,18 +35,18 @@ class app_class(object):
         self.title = 'Serial Datalogger ' + self.version
         try:
             self.icon = PhotoImage(file='icon.png')
-        except Exception as e:
-            self.logger.warn(f'Error loading logo. {e}')
+        except FileNotFoundError as err:
+            self.logger.warning(f'Error loading logo. {err}')
 
         self.bgcolour = "#FFFFFF"
         ttk.Style().theme_use('clam')
 
-        self.def_location = self.default_location(self)
-        self.help = self.help_window(self)
+        self.def_location = self.DefaultLocation(self)
+        self.help = self.HelpWindow(self)
         self.output_dir = self.def_location.get_location()
 
-        self.slogger = logger(log=True, save_dir=self.output_dir)
-        self.main_window = self.main_window(self)
+        self.slogger = Logger(save_dir=self.output_dir)
+        self.main_window = self.MainWindow(self)
 
         # for future implementation of scrollable license window
         # self.frame = tkinter.Frame
@@ -56,9 +56,9 @@ class app_class(object):
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def _set_log(self, log_level=INFO):
-        global log_flag
+        global LOG_FLAG
 
-        if log_flag:
+        if LOG_FLAG:
 
             self.logger(
                 'Logging is already enabled, skipping logger initialisation'
@@ -69,10 +69,10 @@ class app_class(object):
             ui_logger = logging.getLogger('GUI logger')
             ui_logger.setLevel(log_level)
 
-            fh = logging.FileHandler(filename='ui_error.log', mode='a')
-            fh.setLevel(log_level)
-            ch = logging.StreamHandler()
-            ch.setLevel(log_level)
+            file_handle = logging.FileHandler(filename='ui_error.log', mode='a')
+            file_handle.setLevel(log_level)
+            console_handle = logging.StreamHandler()
+            console_handle.setLevel(log_level)
 
             formatter1 = logging.Formatter(
                 '%(asctime)s: %(name)s - %(levelname)s - %(message)s')
@@ -80,21 +80,21 @@ class app_class(object):
                 '%(name)s: - %(levelname)s - %(message)s')
 
             # Add formatters
-            fh.setFormatter(formatter1)
-            ch.setFormatter(formatter2)
+            file_handle.setFormatter(formatter1)
+            console_handle.setFormatter(formatter2)
 
             # add the handlers to the logger
-            ui_logger.addHandler(fh)
-            ui_logger.addHandler(ch)
+            ui_logger.addHandler(file_handle)
+            ui_logger.addHandler(console_handle)
 
-            log_flag = True
+            LOG_FLAG = True
 
         return ui_logger
 
-    class main_window(object):
-        def __init__(self, app_class):
+    class MainWindow(object):
+        def __init__(self, AppClass):
 
-            self.app = app_class
+            self.app = AppClass
             self.root = self.app.root
             self.bgcolour = self.app.bgcolour
             self.title = self.app.title
@@ -111,8 +111,8 @@ class app_class(object):
 
             try:
                 self.root.iconphoto(False, self.icon)
-            except Exception as e:
-                self.logger.warn(f'{self.get_time()}: Error loading logo. {e}')
+            except FileNotFoundError as err:
+                self.logger.warn(f'{self.app._get_time()}: Error loading logo. {err}')
             self.root.configure(background=self.bgcolour)
 
             # Tkinter Integer variable to set timestamp checkbox in menu
@@ -264,7 +264,7 @@ class app_class(object):
 
                 # Set flag to true for starting after its was stopped once
                 self.slogger.log = True
-                t1 = Thread(
+                thread_1 = Thread(
                     target=self.slogger.capture, args=(
                         port_name,
                         baud_rate,
@@ -275,13 +275,13 @@ class app_class(object):
                 )
 
                 if self.slogger.log:
-                    t1.start()
+                    thread_1.start()
                 else:
-                    t1.join()
+                    thread_1.join()
 
-            except Exception as e:
+            except Exception as err:
 
-                error_message = f'''Please check whether you have entered correct port number or baud rate. {str(e)}'''
+                error_message = f'''Please check whether you have entered correct port number or baud rate. {str(err)}'''
                 messagebox.showerror('Error ', error_message)
                 self.logger.error(error_message)
 
@@ -346,10 +346,10 @@ class app_class(object):
             self.serial_port_selection.delete(0, 'end')
             self.baud_rate_selection.delete(0, 'end')
 
-    class help_window(object):
-        def __init__(self, app_class):
+    class HelpWindow(object):
+        def __init__(self, AppClass):
 
-            self.app = app_class
+            self.app = AppClass
             self.root = self.app.root
             self.bgcolour = self.app.bgcolour
             self.title = self.app.title
@@ -371,11 +371,11 @@ class app_class(object):
                 "Save - Save current log file as desired",
                 "Clear - Clear all existing entries in the window",
                 "Quit - Quit the app. Will prompt to save file if unsaved",
-                "Timestamp - Add a timestamp to the left of each line being saved. This is off by default",
-                "Raw mode - Read all the bytes from the port without formatting.\nImproves the logging speed, but formatting won't be clean.\nPlease use text file without timestamps for a clean output",
+                "Timestamp - Add a timestamp to the start of each line being saved. This is off by default",
+                "Raw mode - Read all the bytes from the port without formatting.\nImproves the logging speed, but formatting won't be clean.\nPlease use text file without timestamps for a cleaner output",
                 "Refresh port list - Refresh and show the serial ports recognised by the OS",
                 "Default location - Set the location where all log files will be saved.\nLocation is remembered even if app is closed once set",
-                "Please feel free raise an issue or pull request on the github"
+                "Please feel free to raise an issue or pull request on the github"
             ]
             self.help_line = ''.join(f'{i}.\n\n' for i in lines)
             self.source_line = "Source code on Github"
@@ -394,8 +394,8 @@ class app_class(object):
 
             try:
                 window.iconphoto(True, tkinter.PhotoImage(file='help.png'))
-            except Exception as e:
-                self.logger.warn(f'Error loading logo. {e}')
+            except FileNotFoundError as err:
+                self.logger.warn(f'Error loading logo. {err}')
 
             # Layout properties with weights for responsive UI
             window.columnconfigure([0, 1], weight=1, minsize=50)
@@ -423,7 +423,7 @@ class app_class(object):
                                       background=self.bgcolour,
                                       font=('Helvetica 8'))
             source_label.bind(
-                '<Button-1>', lambda e: self.callback(
+                '<Button-1>', lambda link: self.callback(
                     'https://github.com/mark-IV-II/serial_datalogger'))
             source_label.grid(row=2, column=0, padx=2, pady=0)
 
@@ -435,14 +435,14 @@ class app_class(object):
                                     font=('Helvetica 8'))
             attr_label.bind(
                 '<Button-1>',
-                lambda e: self.callback('https://thoseicons.com/freebies/'))
+                lambda link: self.callback('https://thoseicons.com/freebies/'))
             attr_label.grid(row=2, column=1, padx=2, pady=0)
 
-    class default_location(object):
-        def __init__(self, app_class):
+    class DefaultLocation(object):
+        def __init__(self, AppClass):
 
             # self.output_dir = self.get_location()
-            self.app = app_class
+            self.app = AppClass
             self.root = self.app.root
             self.bgcolour = self.app.bgcolour
             self.title = self.app.title
@@ -471,8 +471,8 @@ class app_class(object):
             window.configure(background=self.bgcolour)
             try:
                 window.iconphoto(True, self.icon)
-            except Exception as e:
-                self.logger.warn(f"Error loading logo: {str(e)}")
+            except FileNotFoundError as err:
+                self.logger.warn(f"Error loading logo: {str(err)}")
             # self.window=window
             self.draw_elements()
 
@@ -511,12 +511,12 @@ class app_class(object):
             loc = ''
 
             try:
-                with open('config.json', 'r') as config_file:
+                with open('config.json', 'r', encoding='UTF-8') as config_file:
                     config = json.load(config_file)
                     loc = config['Default location']
-            except Exception as e:
+            except FileNotFoundError as err:
                 self.logger.warn(
-                    f'Error finding config file: {e}. Using temp folder')
+                    f'Error finding config file: {err}. Using temp folder')
 
             return loc
 
@@ -526,9 +526,9 @@ class app_class(object):
                 with open('config.json', 'w') as config_file:
                     config = {'Default location': self.app.output_dir}
                     json.dump(config, config_file)
-            except Exception as e:
+            except Exception as err:
                 self.logger.error(
-                    f'Error writing config: {e}. Default location not set')
+                    f'Error writing config: {err}. Default location not set')
 
             finally:
                 self.clear_window()
@@ -541,5 +541,5 @@ class app_class(object):
 
 
 window = Tk()
-app = app_class(window).main_window
+App = AppClass(window).MainWindow
 window.mainloop()
