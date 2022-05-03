@@ -1,10 +1,11 @@
 import os
-from serlogger import logger
-from datetime import datetime
 import json
+from datetime import datetime
+from serlogger import Logger
+
 
 save_dir = "."
-logger = logger(save_dir=save_dir)
+logger = Logger(save_dir=save_dir)
 
 
 def get_time(file=True):
