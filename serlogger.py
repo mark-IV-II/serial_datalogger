@@ -1,5 +1,5 @@
 __author__ = "mark-IV-II"
-__version__ = "2.1.1-qt"
+__version__ = "2.1.2-qt"
 __name__ = "Serial Datalogger Module"
 
 from io import TextIOWrapper
@@ -50,6 +50,7 @@ class logger:
 
         self.file_name = f"Log-{self._get_time(file=True)}"
         self.json_warn = False
+        self.serial_data = None
 
         self.out_format_select = {
             "txt": self._write_to_txt,
@@ -118,7 +119,8 @@ class logger:
         """Write output to a JSON file.
         Experimental, could be slow or in wrong format in certian situations"""
 
-        self.full_file_name = os.path.join(self.dir_name, self.file_names["json"])
+        self.full_file_name = os.path.join(
+            self.dir_name, self.file_names["json"])
 
         log_dict = {}
         if not self.json_warn:
@@ -242,6 +244,7 @@ class logger:
         format_ext="txt",
         timestamp=False,
         decoder="utf-8",
+        non_blocking=1,
     ):
         """Capture data coming through serial port of the computer.
         Arguments include port name, baud rate, raw mode flag,
@@ -256,7 +259,8 @@ class logger:
             # Intialise function parameters
             port = str(port_name)
             baud_rate = int(baud_rate)
-            data = serial.Serial(port, baud_rate, timeout=0.1)
+            data = self.serial_data = serial.Serial(
+                port, baud_rate, timeout=0.1, rtscts=non_blocking)
 
             while self.log:
                 # ic(self.full_file_name)
@@ -272,7 +276,8 @@ class logger:
                 if line == "":
                     continue
 
-                self.out_format_select[format_ext](string=line, timestamp=timestamp)
+                self.out_format_select[format_ext](
+                    string=line, timestamp=timestamp)
         # Catch exception, print the error and stop logging
         except Exception as e:
 
@@ -306,6 +311,12 @@ class logger:
         self.mod_logger.info("Stopping. All data while paused is not logged")
         self.log = False  # Set flag to false to stop logging
         time.sleep(1)
+        try:
+            if self.serial_data.is_open:
+                self.serial_data.close()
+        except Exception as err:
+            self.mod_logger.error(
+                f"Error while saving file at stop: {str(err)}")
 
     def new_file(self):
         """Create a new file object with new file name"""
