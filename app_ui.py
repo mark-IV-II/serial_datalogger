@@ -1,8 +1,11 @@
-__version__ = "3.1.1-qt"
+__version__ = "3.2.0-qt"
 __author__ = "mark-IV-II"
 __appname__ = "Serial Datalogger"
 
+import json
 import os
+import shutil
+import subprocess
 from threading import Thread
 import traceback
 from datetime import datetime
@@ -105,7 +108,12 @@ class appWindow(QMainWindow):
         super().__init__(parent)
 
         # self._startup = True
-        self.setWindowIcon(QIcon("icon.png"))
+        try:
+            self.setWindowIcon(QIcon("icon.png"))
+        except FileNotFoundError as file_error:
+            print("Icon file not found")
+        except Exception as error:
+            print(error)
         self._createMenuBar()
         # self._createToolBar()
         self._createStatusBar()
@@ -126,7 +134,7 @@ class appWindow(QMainWindow):
         self.thread_initialize = QtCore.QThread()
 
         # create console text read thread + receiver object
-        self.thread_queue_listener = QtCore.QThread()
+        self.thread_queue_listener = QtCore.QThread(parent=self)
         self.console_text_receiver = ThreadConsoleTextQueueReceiver(
             self.queue_console_text
         )
@@ -137,8 +145,10 @@ class appWindow(QMainWindow):
         # attach console text receiver to console text thread
         self.console_text_receiver.moveToThread(self.thread_queue_listener)
         # attach to start / stop methods
-        self.thread_queue_listener.started.connect(self.console_text_receiver.run)
-        self.thread_queue_listener.finished.connect(self.console_text_receiver.finished)
+        self.thread_queue_listener.started.connect(
+            self.console_text_receiver.run)
+        self.thread_queue_listener.finished.connect(
+            self.console_text_receiver.finished)
         self.thread_queue_listener.start()
 
         self.slogger = logger()
@@ -281,6 +291,21 @@ class appWindow(QMainWindow):
         self.slogger.save_capture(result_file[0])
 
     def _exit_app(self):
+
+        # TODO(Fix "QThread: Destroyed while thread is still running" error)
+        # tlog = open("thread.log", "a+")
+        # print("exiting threads", file=tlog)
+        # self.thread_queue_listener.exit()
+        # self.thread_initialize.exit()
+        # print("quiting threads", file=tlog)
+        # self.thread_queue_listener.quit()
+        # self.thread_initialize.quit()
+        # print("waiting for threads to quit", file=tlog)
+        # self.thread_queue_listener.wait()
+        # self.thread_initialize.wait()
+        # # sleep(2)
+        # print("Done waiting, closing app", file=tlog)
+
         self.thread_initialize.exit()
         self.thread_queue_listener.exit()
         sys.exit()
@@ -295,6 +320,10 @@ class appWindow(QMainWindow):
     def _show_help(self):
         self._help_window = helpWindow()
         self._help_window.show()
+
+    def _show_config(self):
+        self._config_window = configWindow()
+        self._config_window.show()
 
     def _createMenuBar(self):
         menuBar = self.menuBar()
@@ -319,6 +348,12 @@ class appWindow(QMainWindow):
         self.refreshPortsAction.setStatusTip("Refresh the list of ports shown")
         self.refreshPortsAction.triggered.connect(self._refresh_ports)
 
+        self.viewConfigAction = QAction("&Settings", self)
+        self.viewConfigAction.setShortcut("Ctrl+I")
+        self.viewConfigAction.setStatusTip(
+            "Change different Settings of the application")
+        self.viewConfigAction.triggered.connect(self._show_config)
+
         self.helpAction = QAction("&Help", self)
         self.helpAction.setShortcut("Ctrl+H")
         self.helpAction.setStatusTip("Learn about the app and its features")
@@ -331,17 +366,22 @@ class appWindow(QMainWindow):
 
         optionsMenu = menuBar.addMenu("&Options")
         optionsMenu.addAction(self.refreshPortsAction)
-        # optionsMenu.addAction(self.setDefaultLocationAction) TODO(Option to set a default location to run everything)
+        optionsMenu.addAction(self.viewConfigAction)
 
         helpMenu = menuBar.addMenu("&Help")
         helpMenu.addAction(self.helpAction)
-
 
     def _createStatusBar(self):
 
         self.status = QStatusBar()
         self.status.showMessage("Click on Help to know more about the app")
         self.setStatusBar(self.status)
+
+    def restart_app(self):
+        '''Call a bat/ps1 file to restart the app'''
+        # TODO (kill, then start or self exit, then start)
+        # subprocess.Popen("")
+        pass
 
     def pause(self):
 
@@ -361,7 +401,8 @@ class appWindow(QMainWindow):
 
         t1 = Thread(
             target=self.slogger.capture,
-            args=(port_name, baud_rate, raw_mode, format_ext, timestamp_status),
+            args=(port_name, baud_rate, raw_mode,
+                  format_ext, timestamp_status),
         )
         if self.slogger.log:
             t1.start()
@@ -408,11 +449,18 @@ class helpWindow(QWidget):
         super().__init__()
 
         self.setWindowTitle("Help")
-        self.setWindowIcon(QIcon("help.png"))
         self.layout = QVBoxLayout()
         self.layout.setSpacing(20)
 
-        about_line = QLabel(f"""Thank you for using Serial Data logger v{__version__}\n(C) 2020-2021 mark-IV-II under MIT License""")
+        try:
+            self.setWindowIcon(QIcon("help.png"))
+        except FileNotFoundError as file_error:
+            print(file_error)
+        except Exception as error:
+            print(error)
+
+        about_line = QLabel(
+            f"""Thank you for using Serial Data logger v{__version__}\n(C) 2020-2022 mark-IV-II under MIT License""")
         hfont = QFont()
         hfont.setBold(True)
         hfont.setPointSize(14)
@@ -432,7 +480,8 @@ class helpWindow(QWidget):
                 "New file - Save log to a new file. Stops current run. Requires logging to be started again"
             )
         )
-        self.layout.addWidget(QLabel("Save - Save current log file as desired"))
+        self.layout.addWidget(
+            QLabel("Save - Save current log file as desired"))
         self.layout.addWidget(
             QLabel("Clear - Clear all existing entries in the window")
         )
@@ -459,24 +508,137 @@ class helpWindow(QWidget):
             QLabel("Please feel free raise an issue or pull request on the github")
         )
 
-        source_code_label = QLabel("<a href='https://github.com/mark-IV-II/serial_datalogger/'>Source Code on Github</a>")
+        source_code_label = QLabel(
+            "<a href='https://github.com/mark-IV-II/serial_datalogger/'>Source Code on Github</a>")
         source_code_label.setOpenExternalLinks(True)
 
-        icons_credit_label = QLabel("<a href='https://thoseicons.com/freebies'>Icons from ThoseIcons.com under CC BY 3.0</a>")
+        icons_credit_label = QLabel(
+            "<a href='https://thoseicons.com/freebies'>Icons from ThoseIcons.com under CC BY 3.0</a>")
         source_code_label.setOpenExternalLinks(True)
 
         self.layout.addWidget(source_code_label)
         self.layout.addWidget(icons_credit_label)
         self.setLayout(self.layout)
 
+# TODO (Complete configuration page)
 
-# class RuntimeStylesheets(QMainWindow, QtStyleTools): TODO(Change themes on runtime)
+
+class configWindow(QWidget):
+
+    def __init__(self):
+
+        super().__init__()
+
+        self.config_dict = read_config_file()
+
+        self.setWindowTitle("Settings")
+        self.hfont = QFont()
+        self.hfont.setBold(True)
+        self.hfont.setPointSize(14)
+        self.gridLayout = QGridLayout()
+        self.gridLayout.setObjectName("gridLayout")
+
+        self.heading = QLabel()
+        self.heading.setObjectName("heading")
+        self.gridLayout.addWidget(self.heading, 0, 0, 1, 1)
+        self.heading.setText("Restart app to apply new theme")
+
+        self.feature_req = QLabel(
+            "<a href='https://github.com/mark-IV-II/serial_datalogger/discussions/new?category=ideas'>New Ideas/Features Request</a>")
+        self.feature_req.setOpenExternalLinks(True)
+        self.gridLayout.addWidget(self.feature_req, 0, 1, 1, 1)
+
+        self.themes_list = QComboBox()
+        self.themes_list.setObjectName("theme_list")
+        self.gridLayout.addWidget(self.themes_list, 1, 0, 1, 1)
+        self.themes_list.setEditable(False)
+        self.themes_list.currentIndexChanged.connect(self._update_theme)
+        # self.themes_list.addItems(self.themes)
+
+        self.editor_link = QLabel(
+            "<a href='https://material.io/resources/color/#!/?view.left=0&view.right=0'>Theme Editor Online</a>")
+        self.editor_link.setOpenExternalLinks(True)
+        self.gridLayout.addWidget(self.editor_link, 2, 0, 1, 2)
+
+        self.select_custom_theme_btn = QPushButton()
+        self.select_custom_theme_btn.setObjectName("select_custom_theme")
+        self.gridLayout.addWidget(self.select_custom_theme_btn, 1, 1, 1, 1)
+        self.select_custom_theme_btn.clicked.connect(self._select_custom_theme)
+        self.select_custom_theme_btn.setText("Select Custom Theme")
+
+        self.save_config_btn = QPushButton()
+        self.save_config_btn.setObjectName("save_configuration")
+        self.gridLayout.addWidget(self.save_config_btn, 3, 1, 1, 1)
+        self.save_config_btn.clicked.connect(self._save_config)
+        self.save_config_btn.setText("Save")
+
+        self.close_btn = QPushButton()
+        self.close_btn.setObjectName("close_configuration")
+        self.gridLayout.addWidget(self.close_btn, 3, 0, 1, 1)
+        self.close_btn.clicked.connect(self.close)
+        self.close_btn.setText("Close")
+
+        self.setLayout(self.gridLayout)
+        self._refresh_themes()
+
+    def _select_custom_theme(self):
+        '''Load a new theme file to Themes directory'''
+
+        file_name = QFileDialog.getOpenFileName(
+            self, 'Select theme file', os.getcwd(), "Theme XML files (*.xml)")
+        src_file = file_name[0]
+
+        shutil.copy2(src_file, "./themes/")
+        self._refresh_themes()
+        print(f"Custom theme {src_file} loaded")
+
+    def _refresh_themes(self):
+        '''Retrieve and display available themes'''
+
+        # Select only the name of the file from list of files in the theme directory with XML file extension
+        themes = [_.split(".xml")[0] for _ in os.listdir(
+            r"./themes/") if _.endswith(r".xml")]
+        self.themes_list.clear()
+        self.themes_list.addItems(themes)
+        self.themes_list.setCurrentText(self.config_dict['theme'])
+
+    def _update_theme(self):
+
+        self.config_dict["theme"] = self.themes_list.currentText()
+        
+
+    def _save_config(self):
+        '''Save configuration to json or ini file'''
+        with open('app_config.json', 'w', encoding='UTF-8') as config_file:
+            json.dump(self.config_dict, config_file)
+
+        save_msg = '''\n--/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\--\n\nNew Settings saved successfully\n\n--/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\--\n'''
+        print(save_msg)
+        self.close()
+
+# class RuntimeStylesheets(QMainWindow, QtStyleTools): TODO(Change theme on runtime)
 #     def __init__(self):
 #         super().__init__()
 #         self.main = QUiLoader().load("main_window.ui", self)
 
+
 #         self.add_menu_theme(self.main, self.main.menuStyles)
 
+def read_config_file():
+    '''Read the app_config.json file, returns default values if not found'''
+
+    config_dict = {"def_dir": '', "theme": 'Default'}
+    try:
+        with open("app_config.json", "r", encoding="UTF-8") as config_file:
+            config_dict = json.load(config_file)
+
+    except FileNotFoundError as file_error:
+        print(file_error)
+
+    except Exception as gen_error:
+        print(gen_error)
+
+    return config_dict
 
 if __name__ == "__main__":
 
@@ -484,12 +646,17 @@ if __name__ == "__main__":
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open(log_file_name, "a+") as log_file:
         print(f"Starting application v{__version__} at {now}", file=log_file)
+    
+    config = read_config_file()
+    theme_path = os.path.join(os.getcwd(),"themes",f"{config['theme']}.xml")
+
 
     try:
         app = QApplication(sys.argv)
 
         window = appWindow()
-        apply_stylesheet(app, theme="./themes/default_theme.xml", invert_secondary=False)
+        apply_stylesheet(app, theme=theme_path,
+                         invert_secondary=False)
         window.show()
 
         sys.exit(app.exec())
