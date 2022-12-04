@@ -5,13 +5,18 @@ This project helps in reading and saving data from a serial port (or USB) connec
 
 Note: The drivers required for the device connected must be installed seperately.
 
-### Screenshot
+### Screenshots
 
-![image](https://user-images.githubusercontent.com/58716239/140868950-b121a30a-2ba2-45ac-9881-6bb466733035.png)
+#### Default theme applied
+
+![Default](https://user-images.githubusercontent.com/58716239/140868950-b121a30a-2ba2-45ac-9881-6bb466733035.png)
+
+#### Custom theme applied
+![Custom](https://user-images.githubusercontent.com/58716239/205505993-00e030a3-f67c-421a-a21b-6fd684785143.png)
 
 ## Features
 
-* ### Output Console is now inside the main window
+* ### Output Console is inside the main window
 
 * ### Output file formats
 
@@ -31,10 +36,13 @@ Note: The drivers required for the device connected must be installed seperately
     * Refresh port list - Refresh and show the serial ports recognised by the OS
 
 * ### Help
-    * Help - General help, about and credits regarding the app
+    * Help - General help, about and credits regarding the application
 
 * ### Operating System
-    Supports Windows, Linux and MacOSX. Linux and MacOSX support is experimental
+    * Supports Windows, Linux and MacOSX. Linux and MacOSX support is experimental
+
+* ### Supports different material UI themes
+    * Check out <a href='https://material.io/resources/color/#!/?view.left=0&view.right=0'>Theme Editor</a> for custom themes
 
 _[Icons from Thoseicons.com under CC BY 3.0](https://thoseicons.com/freebies/)_
 
