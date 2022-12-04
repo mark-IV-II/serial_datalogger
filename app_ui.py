@@ -544,7 +544,7 @@ class configWindow(QWidget):
         self.heading.setText("Restart app to apply new theme")
 
         self.feature_req = QLabel(
-            "<a href='https://github.com/mark-IV-II/serial_datalogger/discussions/new?category=ideas'>New Ideas/Features Request</a>")
+            "<a href='https://github.com/mark-IV-II/serial_datalogger/discussions/3'>New Ideas/Features Request</a>")
         self.feature_req.setOpenExternalLinks(True)
         self.gridLayout.addWidget(self.feature_req, 0, 1, 1, 1)
 
