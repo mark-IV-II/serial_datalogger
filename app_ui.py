@@ -1,7 +1,10 @@
-__version__ = "3.2.0-qt"
+__version__ = "3.3.0-qt-beta"
 __author__ = "mark-IV-II"
 __appname__ = "Serial Datalogger"
+__copyright__ = "(C) 2020-2023 mark-IV-II under MIT License"
+__about__ = "This application helps in reading and saving data from a serial port (or USB) connected to an arduino or other similar boards."
 
+import argparse
 import json
 import os
 import shutil
@@ -145,10 +148,8 @@ class appWindow(QMainWindow):
         # attach console text receiver to console text thread
         self.console_text_receiver.moveToThread(self.thread_queue_listener)
         # attach to start / stop methods
-        self.thread_queue_listener.started.connect(
-            self.console_text_receiver.run)
-        self.thread_queue_listener.finished.connect(
-            self.console_text_receiver.finished)
+        self.thread_queue_listener.started.connect(self.console_text_receiver.run)
+        self.thread_queue_listener.finished.connect(self.console_text_receiver.finished)
         self.thread_queue_listener.start()
 
         self.slogger = logger()
@@ -269,7 +270,6 @@ class appWindow(QMainWindow):
         self._centralWidget.setLayout(self.gridLayout)
 
     def _create_new_file(self):
-
         self.slogger.stop_capture()
         self.slogger.new_file()
 
@@ -277,7 +277,6 @@ class appWindow(QMainWindow):
             self.start()
 
     def _save_file(self):
-
         result_file = QFileDialog.getSaveFileName(
             self,
             "Save File",
@@ -291,7 +290,6 @@ class appWindow(QMainWindow):
         self.slogger.save_capture(result_file[0])
 
     def _exit_app(self):
-
         # TODO(Fix "QThread: Destroyed while thread is still running" error)
         # tlog = open("thread.log", "a+")
         # print("exiting threads", file=tlog)
@@ -351,7 +349,8 @@ class appWindow(QMainWindow):
         self.viewConfigAction = QAction("&Settings", self)
         self.viewConfigAction.setShortcut("Ctrl+I")
         self.viewConfigAction.setStatusTip(
-            "Change different Settings of the application")
+            "Change different Settings of the application"
+        )
         self.viewConfigAction.triggered.connect(self._show_config)
 
         self.helpAction = QAction("&Help", self)
@@ -372,24 +371,21 @@ class appWindow(QMainWindow):
         helpMenu.addAction(self.helpAction)
 
     def _createStatusBar(self):
-
         self.status = QStatusBar()
         self.status.showMessage("Click on Help to know more about the app")
         self.setStatusBar(self.status)
 
     def restart_app(self):
-        '''Call a bat/ps1 file to restart the app'''
+        """Call a bat/ps1 file to restart the app"""
         # TODO (kill, then start or self exit, then start)
         # subprocess.Popen("")
         pass
 
     def pause(self):
-
         self.slogger.stop_capture()  # Stop logging
         self._running = False
 
     def start(self):
-
         self._running = True
         port_name = self.port_list.currentText()
         baud_rate = self.baud_list.currentText()
@@ -401,16 +397,22 @@ class appWindow(QMainWindow):
 
         t1 = Thread(
             target=self.slogger.capture,
-            args=(port_name, baud_rate, raw_mode,
-                  format_ext, timestamp_status),
+            kwargs={
+                "raw_mode": raw_mode,
+                "timestamp": timestamp_status,
+                "format_ext": format_ext,
+                "decoder": "UTF-8",
+                "port": port_name,
+                "baudrate": baud_rate,
+            },
         )
+
         if self.slogger.log:
             t1.start()
         else:
             t1.join()
 
     def set_raw_mode(self):
-
         self.slogger.stop_capture()
 
         if self._raw_mode_flag:
@@ -428,7 +430,6 @@ class appWindow(QMainWindow):
             self.start()
 
     def set_timestamp(self):
-
         self.slogger.stop_capture()
 
         if self._timestamp_flag:
@@ -460,7 +461,8 @@ class helpWindow(QWidget):
             print(error)
 
         about_line = QLabel(
-            f"""Thank you for using Serial Data logger v{__version__}\n(C) 2020-2022 mark-IV-II under MIT License""")
+            f"""Thank you for using Serial Data logger v{__version__}\n{__copyright__}"""
+        )
         hfont = QFont()
         hfont.setBold(True)
         hfont.setPointSize(14)
@@ -480,8 +482,7 @@ class helpWindow(QWidget):
                 "New file - Save log to a new file. Stops current run. Requires logging to be started again"
             )
         )
-        self.layout.addWidget(
-            QLabel("Save - Save current log file as desired"))
+        self.layout.addWidget(QLabel("Save - Save current log file as desired"))
         self.layout.addWidget(
             QLabel("Clear - Clear all existing entries in the window")
         )
@@ -509,24 +510,25 @@ class helpWindow(QWidget):
         )
 
         source_code_label = QLabel(
-            "<a href='https://github.com/mark-IV-II/serial_datalogger/'>Source Code on Github</a>")
+            "<a href='https://github.com/mark-IV-II/serial_datalogger/'>Source Code on Github</a>"
+        )
         source_code_label.setOpenExternalLinks(True)
 
         icons_credit_label = QLabel(
-            "<a href='https://thoseicons.com/freebies'>Icons from ThoseIcons.com under CC BY 3.0</a>")
+            "<a href='https://thoseicons.com/freebies'>Icons from ThoseIcons.com under CC BY 3.0</a>"
+        )
         source_code_label.setOpenExternalLinks(True)
 
         self.layout.addWidget(source_code_label)
         self.layout.addWidget(icons_credit_label)
         self.setLayout(self.layout)
 
+
 # TODO (Complete configuration page)
 
 
 class configWindow(QWidget):
-
     def __init__(self):
-
         super().__init__()
 
         self.config_dict = read_config_file()
@@ -544,7 +546,8 @@ class configWindow(QWidget):
         self.heading.setText("Restart app to apply new theme")
 
         self.feature_req = QLabel(
-            "<a href='https://github.com/mark-IV-II/serial_datalogger/discussions/3'>New Ideas/Features Request</a>")
+            "<a href='https://github.com/mark-IV-II/serial_datalogger/discussions/3'>New Ideas/Features Request</a>"
+        )
         self.feature_req.setOpenExternalLinks(True)
         self.gridLayout.addWidget(self.feature_req, 0, 1, 1, 1)
 
@@ -556,7 +559,8 @@ class configWindow(QWidget):
         # self.themes_list.addItems(self.themes)
 
         self.editor_link = QLabel(
-            "<a href='https://material.io/resources/color/#!/?view.left=0&view.right=0'>Theme Editor Online</a>")
+            "<a href='https://material.io/resources/color/#!/?view.left=0&view.right=0'>Theme Editor Online</a>"
+        )
         self.editor_link.setOpenExternalLinks(True)
         self.gridLayout.addWidget(self.editor_link, 2, 0, 1, 2)
 
@@ -582,10 +586,11 @@ class configWindow(QWidget):
         self._refresh_themes()
 
     def _select_custom_theme(self):
-        '''Load a new theme file to Themes directory'''
+        """Load a new theme file to Themes directory"""
 
         file_name = QFileDialog.getOpenFileName(
-            self, 'Select theme file', os.getcwd(), "Theme XML files (*.xml)")
+            self, "Select theme file", os.getcwd(), "Theme XML files (*.xml)"
+        )
         src_file = file_name[0]
 
         shutil.copy2(src_file, "./themes/")
@@ -593,28 +598,28 @@ class configWindow(QWidget):
         print(f"Custom theme {src_file} loaded")
 
     def _refresh_themes(self):
-        '''Retrieve and display available themes'''
+        """Retrieve and display available themes"""
 
         # Select only the name of the file from list of files in the theme directory with XML file extension
-        themes = [_.split(".xml")[0] for _ in os.listdir(
-            r"./themes/") if _.endswith(r".xml")]
+        themes = [
+            _.split(".xml")[0] for _ in os.listdir(r"./themes/") if _.endswith(r".xml")
+        ]
         self.themes_list.clear()
         self.themes_list.addItems(themes)
-        self.themes_list.setCurrentText(self.config_dict['theme'])
+        self.themes_list.setCurrentText(self.config_dict["theme"])
 
     def _update_theme(self):
-
         self.config_dict["theme"] = self.themes_list.currentText()
-        
 
     def _save_config(self):
-        '''Save configuration to json or ini file'''
-        with open('app_config.json', 'w', encoding='UTF-8') as config_file:
+        """Save configuration to json or ini file"""
+        with open("app_config.json", "w", encoding="UTF-8") as config_file:
             json.dump(self.config_dict, config_file)
 
-        save_msg = '''\n--/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\--\n\nNew Settings saved successfully\n\n--/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\--\n'''
+        save_msg = """\n--%%%%%%%%%%%%%%%%%%%--\n\nNew Settings saved successfully\n\n--%%%%%%%%%%%%%%%%%%%--\n"""
         print(save_msg)
         self.close()
+
 
 # class RuntimeStylesheets(QMainWindow, QtStyleTools): TODO(Change theme on runtime)
 #     def __init__(self):
@@ -624,10 +629,23 @@ class configWindow(QWidget):
 
 #         self.add_menu_theme(self.main, self.main.menuStyles)
 
-def read_config_file():
-    '''Read the app_config.json file, returns default values if not found'''
+def parse_cli_args():
 
-    config_dict = {"def_dir": '', "theme": 'Default'}
+    parser = argparse.ArgumentParser(
+                    prog=f"{__appname__}_v{__version__}",
+                    description=__about__,
+                    epilog=__copyright__)
+    parser.add_argument('-d', '--debug',
+                    default=False,
+                    help="Enable debug logging for the app")
+    args = parser.parse_args()
+
+    return args
+
+def read_config_file():
+    """Read the app_config.json file, returns default values if not found"""
+
+    config_dict = {"def_dir": ".", "theme": "Default"}
     try:
         with open("app_config.json", "r", encoding="UTF-8") as config_file:
             config_dict = json.load(config_file)
@@ -640,34 +658,40 @@ def read_config_file():
 
     return config_dict
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
+    
+    # True till if argparse explicity sets debug to False, so that all starting failures are captured
+    debug = True
     log_file_name = f"{__appname__}_v{__version__}.log"
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open(log_file_name, "a+") as log_file:
         print(f"Starting application v{__version__} at {now}", file=log_file)
-    
-    config = read_config_file()
-    theme_path = os.path.join(os.getcwd(),"themes",f"{config['theme']}.xml")
 
+    config = read_config_file()
+    theme_path = os.path.join(os.getcwd(), "themes", f"{config['theme']}.xml")
+    cli_args = parse_cli_args()
+    debug = cli_args.debug
 
     try:
+
         app = QApplication(sys.argv)
 
         window = appWindow()
-        apply_stylesheet(app, theme=theme_path,
-                         invert_secondary=False)
+        apply_stylesheet(app, theme=theme_path, invert_secondary=False)
         window.show()
 
         sys.exit(app.exec())
 
     except Exception as error:
-
         error_trace = "".join(
             traceback.format_exception(None, error, error.__traceback__)
         )
         with open(log_file_name, "a+") as log_file:
             print(f"Error starting application: {error_trace}", file=log_file)
+
+        if debug:
+            input(f"Error starting application: {error_trace}. Find the log file at {log_file_name} Press any key to continue")
 
         msg_box = QMessageBox()
         msg_box.setWindowTitle(__appname__)
