@@ -1,9 +1,7 @@
 __author__ = "mark-IV-II"
-__version__ = "3.0.0-qt"
+__version__ = "3.1.0-qt"
 __name__ = "Serial Datalogger Module"
 
-from io import TextIOWrapper
-import os  # For writing to temp file
 import sys  # To identify platform
 import time  # To set a wait time
 import json
@@ -16,6 +14,7 @@ from serial import Serial  # pip install pyserial
 # from icecream import ic
 from datetime import datetime  # to save timestamp
 from tempfile import gettempdir
+from pathlib import Path,PurePath
 
 
 class logger:
@@ -23,14 +22,14 @@ class logger:
     Functions: find_all_ports, capture, save_capture, stop_capture, ."""
 
     # Initialise class parameters
-    def __init__(self, log=True, save_dir: "str|None" = None):
+    def __init__(self, save_dir: "str|None" = None, log_level=INFO):
         self.mod_logger = logging.getLogger("Module logger")
         self.mod_logger.setLevel(DEBUG)
 
         fh = logging.FileHandler(filename=f"{__name__} v{__version__}.log", mode="a")
-        fh.setLevel(WARN)
+        fh.setLevel(log_level)
         ch = logging.StreamHandler()
-        ch.setLevel(INFO)
+        ch.setLevel(log_level)
 
         formatter1 = logging.Formatter(
             "%(asctime)s: %(name)s - %(levelname)s - %(message)s"
@@ -64,16 +63,20 @@ class logger:
         self.full_file_name = ""
 
         try:
-            self.dir_name = os.path.normpath(save_dir)  # type: ignore
+            self.dir_name = Path(save_dir)  # type: ignore
+            tempfilename = PurePath.joinpath(self.dir_name, f"{self.file_name}.temp")
 
-            logfile = open(os.path.join(self.dir_name, f"{self.file_name}.temp"), "w")
-            self.mod_logger.info(f"File write permissions checked for: {self.dir_name}")
-            logfile.close()
-            os.remove(logfile.name)
+            with open(tempfilename, "w") as tempfile:
+                print("Lorem Ipsum Salt\n",file=tempfile)
+                self.mod_logger.info(f"File write permissions checked for: {self.dir_name}")
+                self.mod_logger.debug(f"Directory: {Path.absolute(self.dir_name)}. Temp file: {tempfilename}")
+
+            Path.unlink(Path(tempfilename))
             self.is_temp = False
+            self.mod_logger.debug(f"Temp file removed and is_temp set to false")
 
         except Exception as error:
-            self.dir_name = os.path.normpath(gettempdir())
+            self.dir_name = Path(gettempdir())
             self.is_temp = True
             self.mod_logger.warning(f"Error setting up given directory: {error}.")
             self.mod_logger.warning("Using temporary directory instead")
@@ -92,10 +95,10 @@ class logger:
         else:
             return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    def _write_to_txt(self, string, timestamp=0):
+    def _write_to_txt(self, string, timestamp=False):
         """Write output to a plain text file"""
 
-        self.full_file_name = os.path.join(self.dir_name, self.file_names["txt"])
+        self.full_file_name = PurePath.joinpath(self.dir_name, self.file_names["txt"])
         self.mod_logger.debug(f"Writing to file {self.full_file_name}")
         if timestamp:
             string = f"{self._get_time()}: {string}"
@@ -104,10 +107,10 @@ class logger:
         self.mod_logger.info(string)
         
 
-    def _write_to_csv(self, string, timestamp=0):
+    def _write_to_csv(self, string, timestamp=False):
         """Write output to a comma seperated file"""
 
-        self.full_file_name = os.path.join(self.dir_name, self.file_names["csv"])
+        self.full_file_name = PurePath.joinpath(self.dir_name, self.file_names["csv"])
         self.mod_logger.debug(f"Writing to file {self.full_file_name}")
         if timestamp:
             string = f"{self._get_time()},{string}"
@@ -115,11 +118,11 @@ class logger:
             logfile.write(string)
         self.mod_logger.info(string)
 
-    def _write_to_json(self, string, timestamp=0):
+    def _write_to_json(self, string, timestamp=False):
         """Write output to a JSON file.
         Experimental, could be slow or in wrong format in certian situations"""
 
-        self.full_file_name = os.path.join(self.dir_name, self.file_names["json"])
+        self.full_file_name = PurePath.joinpath(self.dir_name, self.file_names["json"])
         self.mod_logger.debug(f"Writing to file {self.full_file_name}")
 
         log_dict = {}
@@ -156,8 +159,8 @@ class logger:
         """Set the output path for saving files. Arguments - new_path"""
 
         self.mod_logger.debug("Setting the output path for saving files")
-        self.dir_name = os.path.normpath(new_path)
-        self.full_file_name = os.path.join(self.dir_name, self.file_name)
+        self.dir_name = Path(new_path)
+        self.full_file_name = PurePath.joinpath(self.dir_name, self.file_name)
         self.is_temp = False
         self.mod_logger.debug(
             f"The output path for saving files set as {self.full_file_name}"
@@ -319,7 +322,7 @@ class logger:
             self.log = False  # Set flag to false to stop logging
             self.mod_logger.debug(self._format_error_trace(error))
 
-    def save_capture(self, result_file: TextIOWrapper):
+    def save_capture(self, result_file: Path):
         """Save captured data to a desired file.
         Parameter: result_file - full path to save file"""
         try:

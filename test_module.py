@@ -26,7 +26,8 @@ class MockSerial:
 
     def readline(self, *args, **kwargs):
         line = "World!\n"
-        return f"{self.read().decode("UTF-8")} {line}".encode("UTF-8")
+        line_received = self.read().decode("utf-8")
+        return f"{line_received} {line}".encode("utf-8")
 
     def close(self):
         self.is_open = False
@@ -87,7 +88,7 @@ def test_write_txt(logger_fixture):
     with open(filename, "r") as testfile:
         assert testfile.readlines()[0] == test_line
 
-    logger_fixture._write_to_txt(test_line, timestamp=1)
+    logger_fixture._write_to_txt(test_line, timestamp=True)
     with open(filename, "r") as testfile:
         assert testfile.readlines()[1] == f"{get_time()}: {test_line}"
 
@@ -106,7 +107,7 @@ def test_write_csv(logger_fixture):
     with open(filename, "r") as testfile:
         assert testfile.readlines()[0] == test_line
 
-    logger_fixture._write_to_csv(test_line, timestamp=1)
+    logger_fixture._write_to_csv(test_line, timestamp=True)
     with open(filename, "r") as testfile:
         assert testfile.readlines()[1] == f"{get_time()},{test_line}"
 
@@ -131,6 +132,27 @@ def test_stop_capture(logger_fixture):
     logger_fixture.stop_capture()
     assert not logger_fixture.log
 
+def test_save_capture(logger_fixture):
+    
+    test_line = "Lorum ipsum salt\n"
+    log_filename = "Log-2021-09-11 07-00-00.txt"
+    result_filename = "Final_log.txt"
+
+    if os.path.isfile(log_filename):
+        os.remove(log_filename)
+
+    if os.path.isfile(result_filename):
+        os.remove(result_filename)
+
+    logger_fixture.new_file()
+    logger_fixture._write_to_txt(test_line)
+    logger_fixture.save_capture(result_filename)
+
+    with open(result_filename, "r") as testfile:
+        assert testfile.readlines()[0] == test_line
+
+    os.remove(log_filename)
+    os.remove(result_filename) 
 
 def test_capture_with_mock_serial(logger_fixture):
     raw_mode_flag = True
